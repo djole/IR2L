@@ -1,0 +1,13 @@
+*~
+.DS_Store
+
+logs/*
+trained_models/*
+.project
+.pydevproject
+.virtual/
+.vscode/
+.idea
+__pycache__/
+plots
+*.pyc
