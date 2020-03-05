@@ -136,6 +136,7 @@ def train_maml_like_ppo_(
             print('-------------------------------')
         fitnesses.append(fits)
 
+    torch.save(actor_critic, "saved_model.pt")
     return fitnesses[-1]
 
 
