@@ -5,7 +5,6 @@ dependencies:
   - _pytorch_select=0.1
   - _tflow_select=2.3.0
   - absl-py=0.9.0
-  - appnope=0.1.0
   - astor=0.8.0
   - backcall=0.1.0
   - blas=1.0
@@ -25,11 +24,8 @@ dependencies:
   - jedi=0.16.0
   - keras-applications=1.0.8
   - keras-preprocessing=1.1.0
-  - libcxx=4.0.1
-  - libcxxabi=4.0.1
   - libedit=3.1.20181209
   - libffi=3.2.1
-  - libgfortran=3.0.1
   - libprotobuf=3.11.4
   - markdown=3.1.1
   - mkl=2019.4
@@ -86,7 +82,6 @@ dependencies:
     - matplotlib==3.1.1
     - monotonic==1.5
     - mpi4py==3.0.2
-    - mujoco-py==2.0.2.7
     - numpy==1.17.5
     - opencv-python==4.2.0.32
     - pillow==7.0.0
