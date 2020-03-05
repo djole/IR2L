@@ -83,11 +83,6 @@ def train_maml_like_ppo_(
             obs, reward, done, infos = envs.step(final_action)
             episode_step_counter += 1
 
-            if episode_step_counter > 1000:
-                envs.reset()
-                episode_step_counter = 0
-                done[0] = True
-
             ### Visualise solution
             #if j % 1 == 0 and j > 30:
             #    action_collection.append(final_action.detach().numpy())
@@ -124,7 +119,7 @@ def train_maml_like_ppo_(
         if ob_rms is not None:
             ob_rms = ob_rms.ob_rms
 
-        fits, info = evaluate(actor_critic, ob_rms, envs, NUM_PROC, device)
+        fits, info = evaluate(actor_critic, ob_rms, envs, NUM_PROC, device, inst_on)
         if (j+1) % 1 == 0:
             print(f'----- update num {j} -----')
             print(f'action loss ---> {action_loss}')

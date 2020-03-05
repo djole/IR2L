@@ -6,7 +6,7 @@ from a2c_ppo_acktr.envs import make_vec_envs
 
 
 def evaluate(actor_critic, ob_rms, eval_envs, num_processes,
-             device):
+             device, instinct_on):
 
 
     vec_norm = utils.get_vec_normalize(eval_envs)
@@ -29,7 +29,9 @@ def evaluate(actor_critic, ob_rms, eval_envs, num_processes,
                 obs,
                 eval_recurrent_hidden_states,
                 eval_masks,
-                deterministic=True)
+                deterministic=True,
+                instinct_on=instinct_on,
+            )
 
         # Obser reward and next obs
         obs, reward, done, infos = eval_envs.step(final_action)
