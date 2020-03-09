@@ -6,6 +6,7 @@ import torch
 import numpy as np
 from gym.utils import seeding
 import gym
+from gym.envs.registration import register
 import safety_gym
 
 from statistics import mean
@@ -19,8 +20,66 @@ from arguments import get_args
 
 import random
 
-ENV_NAME = "Safexp-PointGoal0-v0"
+#config = {
+#    'robot_base': 'xmls/point.xml',
+#    #'observe_sensors': False,
+#    'observe_goal_lidar': True,
+#    'constrain_hazards': True,
+#    'hazards_num': 4,
+#}
+
+HAZARD_LOC_PARAM = 1
+HLP = HAZARD_LOC_PARAM
+
+GOAL_LOC_PARAM = 1.8
+GLP = GOAL_LOC_PARAM
+GOALS = [(-GLP, -GLP), (GLP, GLP), (GLP, -GLP), (-GLP, GLP)]
+config = {'observe_goal_lidar': False,
+          'observe_box_lidar': False,
+          'observe_qpos': True,
+          'observe_hazards': True,
+          'goal_locations': [(-GLP, -GLP)],
+          'robot_locations': [(0, 0)],
+          'lidar_max_dist': 3,
+          'lidar_num_bins': 16,
+          'task': 'goal',
+          'goal_size': 0.1,
+          'goal_keepout': 0.305,
+          'hazards_size': 0.4,
+          'hazards_keepout': 0.18,
+          'hazards_num': 4,
+          'hazards_cost': 10.0,
+          'hazards_locations': [(-HLP, -HLP), (HLP, HLP), (HLP, -HLP), (-HLP, HLP)],
+          'constrain_hazards': True,
+          'robot_base': 'xmls/point.xml',
+          'sensors_obs': [], #['accelerometer', 'velocimeter', 'gyro', 'magnetometer'],
+          'lidar_num_bins': 8,
+          'placements_extents': [-2, -2, 2, 2]}
+
+#register(id='SafexpCustomEnvironment-v0',
+#         entry_point='safety_gym.envs.mujoco:Engine',
+#         kwargs={'config': config})
+
+CUSTOM_ENV = 'SafexpCustomEnvironment-v0'
+#ENV_NAME = "Safexp-PointGoal0-v0"
+ENV_NAME = CUSTOM_ENV
 NUM_PROC = 1
+
+def register_set_goal(goal_idx):
+    goal = GOALS[goal_idx]
+    config['goal_locations'] = [goal]
+
+    env_name = f'SafexpCustomEnvironmentGoal{goal_idx}-v0'
+
+    try:
+        register(id=env_name,
+                 entry_point='safety_gym.envs.mujoco:Engine',
+                 kwargs={'config': config})
+    except:
+        pass
+
+    return env_name
+
 
 def train_maml_like_ppo_(
     init_model,
@@ -29,12 +88,15 @@ def train_maml_like_ppo_(
     num_steps=4000,
     num_updates=1,
     inst_on=True,
+    visualize=False
 ):
 
     torch.set_num_threads(1)
     device = torch.device("cpu")
 
-    envs = make_vec_envs(ENV_NAME, np.random.randint(2**32), NUM_PROC,
+    env_name = register_set_goal(0)
+
+    envs = make_vec_envs(env_name, np.random.randint(2**32), NUM_PROC,
                          args.gamma, None, device, allow_early_resets=True, normalize=args.norm_vectors)
 
     actor_critic = copy.deepcopy(init_model)
@@ -59,7 +121,7 @@ def train_maml_like_ppo_(
     rollouts.obs[0].copy_(obs)
     rollouts.to(device)
 
-    fitnesses = []
+    fitnesses = [0]
 
     for j in range(num_updates):
 
@@ -119,7 +181,7 @@ def train_maml_like_ppo_(
         if ob_rms is not None:
             ob_rms = ob_rms.ob_rms
 
-        fits, info = evaluate(actor_critic, ob_rms, envs, NUM_PROC, device, inst_on)
+        fits, info = evaluate(actor_critic, ob_rms, envs, NUM_PROC, device, instinct_on=inst_on)
         if (j+1) % 1 == 0:
             print(f'----- update num {j} -----')
             print(f'action loss ---> {action_loss}')
@@ -131,7 +193,16 @@ def train_maml_like_ppo_(
             print('-------------------------------')
         fitnesses.append(fits)
 
-    torch.save(actor_critic, "saved_model.pt")
+    if visualize:
+        ob_rms = utils.get_vec_normalize(envs)
+        if ob_rms is not None:
+            ob_rms = ob_rms.ob_rms
+
+        for _ in range(100):
+            fits, info = evaluate(actor_critic, ob_rms, envs, NUM_PROC, device, instinct_on=inst_on, visualise=visualize)
+            print(fits)
+            print(info)
+            print('--------')
     return fitnesses[-1]
 
 
@@ -140,21 +211,24 @@ def average_actions(act_col):
 
 if __name__ == "__main__":
     args = get_args()
+    env_name = register_set_goal(0)
 
     envs = make_vec_envs(
-        ENV_NAME, args.seed, 1, args.gamma, None, torch.device("cpu"), False
+        env_name, args.seed, 1, args.gamma, None, torch.device("cpu"), False
     )
     print("start the train function")
     init_sigma = args.init_sigma
     init_model = init_ppo(envs, log(init_sigma))
+    #init_model = torch.load("saved_model.pt")
 
     fitness = train_maml_like_ppo_(
         init_model,
         args,
         args.lr,
-        num_steps=40000,
-        num_updates=300,
+        num_steps=0,#40000,
+        num_updates=0,#300,
         inst_on=False,
+        visualize=True
     )
 
 

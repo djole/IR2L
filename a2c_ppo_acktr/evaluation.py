@@ -6,7 +6,7 @@ from a2c_ppo_acktr.envs import make_vec_envs
 
 
 def evaluate(actor_critic, ob_rms, eval_envs, num_processes,
-             device, instinct_on):
+             device, instinct_on, visualise=False):
 
 
     vec_norm = utils.get_vec_normalize(eval_envs)
@@ -23,6 +23,8 @@ def evaluate(actor_critic, ob_rms, eval_envs, num_processes,
 
     done = False
     cummulative_reward = 0
+    cost_hazards = 0
+    cost = 0
     while not done:
         with torch.no_grad():
             _, action, _, eval_recurrent_hidden_states, (final_action, _) = actor_critic.act(
@@ -35,6 +37,12 @@ def evaluate(actor_critic, ob_rms, eval_envs, num_processes,
 
         # Obser reward and next obs
         obs, reward, done, infos = eval_envs.step(final_action)
+        for info in infos:
+            cost_hazards += info['cost_hazards']
+            cost += info['cost']
+
+        if visualise:
+            eval_envs.render()
 
         eval_masks = torch.tensor(
             [[0.0] if done_ else [1.0] for done_ in done],
@@ -42,4 +50,4 @@ def evaluate(actor_critic, ob_rms, eval_envs, num_processes,
             device=device)
 
         cummulative_reward += reward
-    return cummulative_reward, infos
+    return cummulative_reward, {'cost_hazards': cost_hazards, 'cost': cost}
