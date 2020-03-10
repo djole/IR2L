@@ -9,10 +9,10 @@ from statistics import mean
 import numpy as np
 import torch
 
-import navigation_2d
-from model import init_model
+from env_util import register_set_goal
 from a2c_ppo_acktr.model import init_ppo
-from train_test_model import train_maml_like, train_maml_like_ppo
+from a2c_ppo_acktr.envs import make_vec_envs
+from train_test_model import inner_loop_ppo
 
 # MAXTSK_CHLD = 10
 START_LEARNING_RATE = 7e-4
@@ -79,6 +79,11 @@ class EA:
         if args.load_ga:
             saved_files = get_population_files(args.load_ga_dir)
 
+        ref_env_name = register_set_goal(0)
+
+        reference_envs = make_vec_envs(ref_env_name, np.random.randint(2 ** 32), 1,
+                             args.gamma, None, device, allow_early_resets=True, normalize=args.norm_vectors)
+
         for n in range(pop_size + self.to_select):
             if args.load_ga:
                 file_idx = n % len(saved_files)
@@ -87,16 +92,9 @@ class EA:
             else:
                 start_model = (
                     init_ppo(
-                        navigation_2d.Navigation2DEnv(
-                            rm_nogo=args.rm_nogo,
-                            dist_to_nogo=args.dist_to_nogo,
-                            reduced_sampling=False,
-                            all_dist_to_nogo=args.all_dist_to_nogo,
-                        ),
+                        reference_envs,
                         log(args.init_sigma),
                     )
-                    if args.ppo
-                    else init_model(din, dout, args)
                 )
                 start_lr = args.lr
 
@@ -206,11 +204,7 @@ class EA:
         torch.set_num_threads(1)
         # fits = [episode_rollout(individual.model, args, env, rollout_index=ri, adapt=args.ep_training) for ri in range(num_attempts)]
         fits = [
-            train_maml_like_ppo(
-                individual.model, args, individual.learning_rate, run_idx=num_att
-            )
-            if args.ppo
-            else train_maml_like(
+            inner_loop_ppo(
                 individual.model, args, individual.learning_rate, run_idx=num_att
             )
             for num_att in range(num_attempts)
@@ -272,10 +266,7 @@ def rollout(args, din, dout, pool, device, pop_size=140, elite_prop=0.1, debug=F
     for iteration in range(args.start_gen_idx, 1000):
         start_time = time.time()
         solutions = solver.ask()
-        if args.debug or args.reduce_goals:
-            num_env_samples = args.num_reduced_samples
-        else:
-            num_env_samples = 20
+        num_env_samples = args.num_goal_samples
 
         fitness_calculation_ = partial(
             solver.fitness_calculation, args=args, num_attempts=num_env_samples

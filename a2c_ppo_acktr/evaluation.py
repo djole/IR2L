@@ -6,7 +6,7 @@ from a2c_ppo_acktr.envs import make_vec_envs
 
 
 def evaluate(actor_critic, ob_rms, eval_envs, num_processes,
-             device, instinct_on, visualise=False):
+             device, instinct_on=True, visualise=False):
 
 
     vec_norm = utils.get_vec_normalize(eval_envs)

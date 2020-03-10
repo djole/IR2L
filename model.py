@@ -279,25 +279,3 @@ class ControllerNonParametricCombinator(torch.nn.Module):
         return super(ControllerNonParametricCombinator, self).parameters()
 
 
-def init_model(din, dout, args):
-    """ Method that gives instantiates the model depending on the program arguments """
-
-    if args.parametric_combinator:
-        model = ControllerCombinator(
-            D_in=din,
-            H=100,
-            D_out=dout,
-            init_std=args.init_sigma,
-            load_instinct=args.load_instinct,
-        )
-    elif args.instinct_sigma:
-        model = ControllerInstinctSigma(D_in=din, H=100, D_out=dout)
-    else:
-        model = ControllerNonParametricCombinator(
-            D_in=din,
-            H=100,
-            D_out=dout,
-            init_std=args.init_sigma,
-            load_instinct=args.load_instinct,
-        )
-    return model

@@ -73,24 +73,6 @@ def get_args():
         default=0.7,
         help="initialized value for the exploration sigma parameter",
     )
-    parser.add_argument(
-        "--module-outputs",
-        type=positive_nonzero_int,
-        default=2,
-        help="Define the number of outputs that a single module will have.",
-    )
-    parser.add_argument(
-        "--hidden-size",
-        type=positive_nonzero_int,
-        default=100,
-        help="Define the number of neurons in the hidden layer of a module.",
-    )
-    parser.add_argument(
-        "--num-modules",
-        type=positive_nonzero_int,
-        default=4,
-        help="Define the number of modules in the model.",
-    )
 
     """Arguments that change the behaviour of the model """
     parser.add_argument(
@@ -100,65 +82,16 @@ def get_args():
         help="Define over how many processes to parallelize the fitness evaluation.",
     )
     parser.add_argument(
-        "--unfreeze-modules",
-        action="store_true",
-        default=False,
-        help="unfreeze the module parameters for gradient optimization",
-    )
-    parser.add_argument(
-        "--monolithic-baseline",
-        action="store_true",
-        default=False,
-        help="run the experiment with a monolithic network model.",
-    )
-    parser.add_argument(
-        "--sees-inputs",
-        action="store_true",
-        default=False,
-        help=" If TRUE, the combinator sees the inputs to the model as well",
-    )
-    parser.add_argument(
-        "--rm-nogo",
+        "--rm-hazard",
         action="store_true",
         default=False,
         help="if TRUE, the supported environment will not have no-go zones",
     )
     parser.add_argument(
-        "--dist-to-nogo",
-        default='dist',
-        choices=['lidars', 'none', 'dist'],
-        help="Determines the type of 'no-go' zone observation: 1D distance to the closest ('dist'),\
-             8D bounded lidar detection ('lidars'), or 'none'",
-    )
-    parser.add_argument(
-        "--all-dist-to-nogo",
-        action="store_true",
-        default=False,
-        help="if TRUE, the supported environment will give all 4 distances to nogo zones",
-    )
-    parser.add_argument(
-        "--num-reduced-samples",
+        "--num-goal-samples",
         default=2,
         type=positive_nonzero_int,
-        help='Defined how many steps in the cycle through predetermined goals',
-    )
-    parser.add_argument(
-        '--large-nogos',
-        action='store_true',
-        default=False,
-        help='if raised, the off-limit zones will be large and the goals will be sampled on the outside of the nogo zones',
-    )
-    parser.add_argument(
-        "--rm-exploration-fit",
-        action="store_true",
-        default=False,
-        help="if TRUE, the exploration fitness will be removed",
-    )
-    parser.add_argument(
-        "--load-instinct",
-        action="store_true",
-        default=False,
-        help="if TRUE, the pretrained instinct will be loaded from a file",
+        help='Defined how many steps in the cycle through goals',
     )
     model_type_group = parser.add_mutually_exclusive_group()
     model_type_group.add_argument(

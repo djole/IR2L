@@ -87,14 +87,15 @@ def train_maml_like_ppo_(
     learning_rate,
     num_steps=4000,
     num_updates=1,
+    goal_idx=2,
     inst_on=True,
-    visualize=False
+    visualize=False,
 ):
 
     torch.set_num_threads(1)
     device = torch.device("cpu")
 
-    env_name = register_set_goal(0)
+    env_name = register_set_goal(goal_idx)
 
     envs = make_vec_envs(env_name, np.random.randint(2**32), NUM_PROC,
                          args.gamma, None, device, allow_early_resets=True, normalize=args.norm_vectors)
