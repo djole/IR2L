@@ -123,8 +123,7 @@ if __name__ == "__main__":
         args,
         args.lr,
         num_steps=40000,
-        num_updates=300,
-        inst_on=False,
+        num_updates=150,
     )
 
     print(fitness)
