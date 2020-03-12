@@ -5,6 +5,7 @@ from simpleGA import rollout
 try:
     from mpipool import Pool
 except:
+    print('using multiprocessing, be careful!')
     from multiprocessing import Pool
 
 D_IN, D_OUT = 2, 2
@@ -19,7 +20,8 @@ def main():
     if args.debug:
         rollout(args, D_IN, D_OUT, pool, device, pop_size=5, elite_prop=0.2)
     else:
-        rollout(args, D_IN, D_OUT, pool, device, pop_size=(args.num_proc * 8))
+        print('there should be only one of me!')
+        rollout(args, D_IN, D_OUT, pool, device, pop_size=args.pop_size)
 
 
 if __name__ == "__main__":

@@ -81,6 +81,13 @@ def get_args():
         default=5,
         help="Define over how many processes to parallelize the fitness evaluation.",
     )
+
+    parser.add_argument(
+        "--pop-size",
+        type=positive_nonzero_int,
+        default=500,
+        help="Define how large is the genetic algorithm population",
+    )
     parser.add_argument(
         "--rm-hazard",
         action="store_true",
