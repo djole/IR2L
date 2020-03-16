@@ -8,14 +8,14 @@ HLP = HAZARD_LOC_PARAM
 GOAL_LOC_PARAM = 1.8
 GLP = GOAL_LOC_PARAM
 GOALS = [(-GLP, -GLP), (GLP, GLP), (GLP, -GLP), (-GLP, GLP)]
-config = {'observe_goal_lidar': False,
+config = {'num_steps': 100,
+          'observe_goal_lidar': False,
           'observe_box_lidar': False,
           'observe_qpos': True,
           'observe_hazards': True,
           'goal_locations': [(-GLP, -GLP)],
           'robot_locations': [(0, 0)],
           'lidar_max_dist': 3,
-          'lidar_num_bins': 16,
           'task': 'goal',
           'goal_size': 0.1,
           'goal_keepout': 0.305,
