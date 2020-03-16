@@ -72,8 +72,10 @@ def inner_loop_ppo(
             episode_step_counter += 1
 
             # Count the cost
+            total_reward = reward
             for info in infos:
                 violation_cost += info['cost']
+                total_reward -= info['cost']
 
             # If done then clean the history of observations.
             masks = torch.FloatTensor(
@@ -82,7 +84,7 @@ def inner_loop_ppo(
                 [[0.0] if 'bad_transition' in info.keys() else [1.0]
                  for info in infos])
             rollouts.insert(obs, recurrent_hidden_states, action,
-                            action_log_prob, value, reward, masks, bad_masks)
+                            action_log_prob, value, total_reward, masks, bad_masks)
 
         with torch.no_grad():
             next_value = actor_critic.get_value(
