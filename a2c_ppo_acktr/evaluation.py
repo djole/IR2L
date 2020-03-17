@@ -37,8 +37,9 @@ def evaluate(actor_critic, ob_rms, eval_envs, num_processes,
 
         # Obser reward and next obs
         obs, reward, done, infos = eval_envs.step(final_action)
+        total_reward = reward
         for info in infos:
-            cost_hazards += info['cost_hazards']
+            total_reward -= info['cost']
             cost += info['cost']
 
         if visualise:
@@ -49,5 +50,5 @@ def evaluate(actor_critic, ob_rms, eval_envs, num_processes,
             dtype=torch.float32,
             device=device)
 
-        cummulative_reward += reward
-    return cummulative_reward, {'cost_hazards': cost_hazards, 'cost': cost}
+        cummulative_reward += total_reward
+    return cummulative_reward, {'cost': cost}
