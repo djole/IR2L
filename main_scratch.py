@@ -34,7 +34,8 @@ HLP = HAZARD_LOC_PARAM
 GOAL_LOC_PARAM = 1.8
 GLP = GOAL_LOC_PARAM
 GOALS = [(-GLP, -GLP), (GLP, GLP), (GLP, -GLP), (-GLP, GLP)]
-config = {'observe_goal_lidar': False,
+config = {'num_steps': 200,
+          'observe_goal_lidar': False,
           'observe_box_lidar': False,
           'observe_qpos': True,
           'observe_hazards': True,
@@ -87,15 +88,14 @@ def train_maml_like_ppo_(
     learning_rate,
     num_steps=4000,
     num_updates=1,
-    goal_idx=2,
+    run_idx=2,
     inst_on=True,
     visualize=False,
 ):
-
     torch.set_num_threads(1)
     device = torch.device("cpu")
 
-    env_name = register_set_goal(goal_idx)
+    env_name = register_set_goal(run_idx)
 
     envs = make_vec_envs(env_name, np.random.randint(2**32), NUM_PROC,
                          args.gamma, None, device, allow_early_resets=True, normalize=args.norm_vectors)
@@ -122,19 +122,11 @@ def train_maml_like_ppo_(
     rollouts.obs[0].copy_(obs)
     rollouts.to(device)
 
-    fitnesses = [0]
+    fitnesses = []
+    violation_cost = 0
 
     for j in range(num_updates):
 
-        # if args.use_linear_lr_decay:
-        #    # decrease learning rate linearly
-        #    utils.update_linear_schedule(
-        #        agent.optimizer, j, num_updates,
-        #        agent.optimizer.lr if args.algo == "acktr" else args.lr)
-
-        cumm_training_rew = 0
-        action_collection = []
-        training_rewards = []
         episode_step_counter = 0
         for step in range(num_steps):
             # Sample actions
@@ -146,16 +138,11 @@ def train_maml_like_ppo_(
             obs, reward, done, infos = envs.step(final_action)
             episode_step_counter += 1
 
-            ### Visualise solution
-            #if j % 1 == 0 and j > 30:
-            #    action_collection.append(final_action.detach().numpy())
-            #    average_actions(action_collection)
-            #    envs.render()
-
-            cumm_training_rew += reward[0][0].item()
-            if done[0]:
-                training_rewards.append(cumm_training_rew)
-                cumm_training_rew = 0
+            # Count the cost
+            total_reward = reward
+            for info in infos:
+                violation_cost += info['cost']
+                total_reward -= info['cost']
 
             # If done then clean the history of observations.
             masks = torch.FloatTensor(
@@ -164,7 +151,7 @@ def train_maml_like_ppo_(
                 [[0.0] if 'bad_transition' in info.keys() else [1.0]
                  for info in infos])
             rollouts.insert(obs, recurrent_hidden_states, action,
-                            action_log_prob, value, reward, masks, bad_masks)
+                            action_log_prob, value, total_reward, masks, bad_masks)
 
         with torch.no_grad():
             next_value = actor_critic.get_value(
@@ -183,28 +170,9 @@ def train_maml_like_ppo_(
             ob_rms = ob_rms.ob_rms
 
         fits, info = evaluate(actor_critic, ob_rms, envs, NUM_PROC, device, instinct_on=inst_on)
-        if (j+1) % 1 == 0:
-            print(f'----- update num {j} -----')
-            print(f'action loss ---> {action_loss}')
-            print(f'value loss ----> {value_loss}')
-            print(f"fitness -------> {fits[0][0].item()}")
-            print(f"Average training fitness {mean(training_rewards)}")
-            print(f'Max training fitness {max(training_rewards)}')
-            print(f'worse training fitness {min(training_rewards)}')
-            print('-------------------------------')
         fitnesses.append(fits)
 
-    if visualize:
-        ob_rms = utils.get_vec_normalize(envs)
-        if ob_rms is not None:
-            ob_rms = ob_rms.ob_rms
-
-        for _ in range(100):
-            fits, info = evaluate(actor_critic, ob_rms, envs, NUM_PROC, device, instinct_on=inst_on, visualise=visualize)
-            print(fits)
-            print(info)
-            print('--------')
-    return fitnesses[-1]
+    return (fitnesses[-1] - violation_cost), 0, 0
 
 
 def average_actions(act_col):
@@ -226,8 +194,8 @@ if __name__ == "__main__":
         init_model,
         args,
         args.lr,
-        num_steps=0,#40000,
-        num_updates=0,#300,
+        num_steps=40000,
+        num_updates=1,#300,
         inst_on=False,
         visualize=True
     )
