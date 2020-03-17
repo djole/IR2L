@@ -16,9 +16,9 @@ def main():
     from arguments import get_args
 
     args = get_args()
-    experiment_save_dir = get_experiment_save_dir(args)
     device = torch.device("cpu")
     pool = Pool()
+    experiment_save_dir = get_experiment_save_dir(args)
     if args.debug:
         rollout(args, D_IN, D_OUT, pool, device, exp_save_dir=experiment_save_dir, pop_size=5, elite_prop=0.2)
     else:
