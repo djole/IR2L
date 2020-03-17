@@ -35,11 +35,15 @@ def get_args():
         action="store_true",
         help="Load a saved state from the last generation found in the specified directiory",
     )
+
     parser.add_argument(
-        "--load-ga-dir",
-        default="./trained_models/evolution/___LAST___",
-        help="The directory from which the saved generation will be loaded",
+        "--load-exp-idx",
+        type=int,
+        default=0,
+        metavar="N",
+        help="continue with the experiment matching git hash + this index",
     )
+
     parser.add_argument("--debug", action="store_true", default=False)
 
     parser.add_argument(

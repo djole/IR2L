@@ -14,6 +14,8 @@ from a2c_ppo_acktr.model import init_ppo
 from a2c_ppo_acktr.envs import make_vec_envs
 from train_test_model import inner_loop_ppo
 
+from exp_dir_util import save_population, LOAD_SUBDIR, get_start_gen_idx
+
 # MAXTSK_CHLD = 10
 START_LEARNING_RATE = 7e-4
 
@@ -55,7 +57,7 @@ class EA:
         y -= 0.5
         return y.tolist()
 
-    def __init__(self, args, device, pop_size, elite_prop, din, dout):
+    def __init__(self, args, device, pop_size, elite_prop, load_pop_dir):
         if pop_size < 1:
             raise ValueError(
                 "Population size has to be one or greater, otherwise this doesn't make sense"
@@ -77,7 +79,7 @@ class EA:
 
         # if recover GA, load a list of files representing the population
         if args.load_ga:
-            saved_files = get_population_files(args.load_ga_dir)
+            saved_files = get_population_files(load_pop_dir)
 
         ref_env_name = register_set_goal(0)
 
@@ -165,16 +167,6 @@ class EA:
         # next generation
         for i in range(self.pop_size):
             if i == max_idx:
-                # save the best model
-                state_to_save = self.population[i].model.state_dict()
-                torch.save(
-                    state_to_save,
-                    r"{0}_{1}_generation{2}.dat".format(
-                        self.args.save_dir,
-                        time.strftime("%Y-%m-%d-%H-%M-%S", time.localtime()),
-                        generation_idx,
-                    ),
-                )
                 continue
 
             dart = int(torch.rand(1) * self.to_select)
@@ -213,42 +205,7 @@ class EA:
         return sum(fits), sum(reacheds), mean(instinct_control_avgs)
 
 
-def save_population(args, population, best_ind, generation_idx):
-    save_path = os.path.join(args.save_dir, "evolution", str(generation_idx))
-    save_path_checkpoint = os.path.join(args.save_dir, "evolution", "___LAST___")
-    try:
-        if not os.path.exists(save_path):
-            os.makedirs(save_path)
-        if not os.path.exists(save_path_checkpoint):
-            os.makedirs(save_path_checkpoint)
-    except OSError:
-        pass
-
-    for individual in population:
-        save_model = individual.model
-        save_lr = individual.learning_rate
-        if args.cuda:
-            save_model = copy.deepcopy(individual.model).cpu()
-
-        torch.save(
-            (save_model, save_lr),
-            os.path.join(
-                save_path_checkpoint, "individual_" + str(individual.rank) + ".pt"
-            ),
-        )
-
-    # Save the best
-    save_model = best_ind.model
-    save_lr = best_ind.learning_rate
-    if args.cuda:
-        save_model = copy.deepcopy(best_ind.model).cpu()
-    torch.save(
-        (save_model, save_lr),
-        os.path.join(save_path, "individual_" + str(generation_idx) + ".pt"),
-    )
-
-
-def rollout(args, din, dout, pool, device, pop_size=140, elite_prop=0.1, debug=False):
+def rollout(args, din, dout, pool, device, exp_save_dir, pop_size=140, elite_prop=0.1, debug=False):
     assert (
         elite_prop < 1.0 and elite_prop > 0.0
     ), "Elite needs to be a measure of proportion of population, 0 < elite_prop < 1"
@@ -260,10 +217,10 @@ def rollout(args, din, dout, pool, device, pop_size=140, elite_prop=0.1, debug=F
     if not os.path.exists(args.save_dir):
         os.makedirs(args.save_dir)
 
-
-    solver = EA(args, device, pop_size, elite_prop=elite_prop, din=din, dout=dout)
+    load_pop_from = os.path.join(exp_save_dir, LOAD_SUBDIR)
+    solver = EA(args, device, pop_size, elite_prop=elite_prop, load_pop_dir=load_pop_from)
     fitness_list = [0 for _ in range(pop_size)]
-    for iteration in range(args.start_gen_idx, 1000):
+    for iteration in range(get_start_gen_idx(args.load_ga, exp_save_dir), 1000):
         start_time = time.time()
         solutions = solver.ask()
         num_env_samples = args.num_goal_samples
@@ -283,7 +240,7 @@ def rollout(args, din, dout, pool, device, pop_size=140, elite_prop=0.1, debug=F
         # env.render_episode()
         # ==========================
         gen_time = time.time()
-        save_population(args, solver.population, result, iteration)
+        save_population(args, solver.population, result, iteration, exp_save_dir)
         print(
             "Generation: {}\n The best individual has {} as the reward".format(
                 iteration, best_f

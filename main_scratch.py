@@ -175,9 +175,6 @@ def train_maml_like_ppo_(
     return (fitnesses[-1] - violation_cost), 0, 0
 
 
-def average_actions(act_col):
-    print(f'{np.mean(act_col, axis=0)} avg action')
-
 if __name__ == "__main__":
     args = get_args()
     env_name = register_set_goal(0)
