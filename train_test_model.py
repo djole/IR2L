@@ -20,7 +20,7 @@ def inner_loop_ppo(
     init_model,
     args,
     learning_rate,
-    num_steps=20000,
+    num_steps=4000,
     num_updates=1,
     run_idx=0,
 ):
