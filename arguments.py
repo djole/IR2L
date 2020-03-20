@@ -67,14 +67,14 @@ def get_args():
         help="discount factor (default: 0.99)",
     )
     parser.add_argument(
-        "--lr", type=float, default=0.0003, help="learning rate (default: 0.0003)"
+        "--lr", type=float, default=0.01, help="learning rate (default: 0.01)"
     )
     parser.add_argument("--ep-training", action="store_true", default=False)
 
     parser.add_argument(
         "--init-sigma",
         type=positive_nonzero_float,
-        default=0.7,
+        default=0.3,
         help="initialized value for the exploration sigma parameter",
     )
 
