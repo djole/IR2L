@@ -9,6 +9,8 @@ from statistics import mean
 import numpy as np
 import torch
 
+from torch.utils.tensorboard import SummaryWriter
+
 from env_util import register_set_goal
 from a2c_ppo_acktr.model import init_ppo
 from a2c_ppo_acktr.envs import make_vec_envs
@@ -125,44 +127,23 @@ class EA:
         self.reached = reached_list
         self.instinct_average_list = instinct_average_list
 
-    def step(self, generation_idx, args, device):
+    def step(self, generation_idx, log_writer):
         """One step of the evolution"""
         # Sort the population by fitness and select the top
         sorted_fit_idxs = list(reversed(sorted(zip(self.fitnesses, itools.count()))))
         sorted_pop = [self.population[ix] for _, ix in sorted_fit_idxs]
 
         # recalculate the fitness of the elite subset and find the best individual
-        elite_pop = sorted_pop[: len(self.selected)]
-        # re_fit_max = float("-inf")
-        # max_idx = 0
-        # fitness_recalclulation_ = partial(self.fitness_calculation, num_processes=10)
-        # re_fits = []
-
-        # with Pool(processes=NUM_PROC, maxtasksperchild=MAXTSK_CHLD) as pool:
-        # re_fits = map(fitness_recalclulation_, elite_pop)
-
-        # for re_fit, (_, elite_ix) in zip(re_fits, sorted_fit_idxs):
-        #    if re_fit > re_fit_max:
-        #        max_idx = elite_ix
-        #        re_fit_max = re_fit
         max_fitness, max_idx = sorted_fit_idxs[0]
         for cp_from, cp_to in zip(sorted_pop, self.selected):
             cp_to.model.load_state_dict(cp_from.model.state_dict())
 
-        print(
-            "\n=============== Generation index {} ===============".format(
-                generation_idx
-            )
-        )
-        print("best in the population ----> ", sorted_fit_idxs[0][0])
-        print("best's learning rate ------>", self.population[max_idx].learning_rate)
-        print("best in population reached {} goals".format(self.reached[max_idx]))
-        print("best in population instinct activation average ------>", self.instinct_average_list[max_idx])
-        # print("best in the population after stabilization", re_fit_max)
-        print("worst in the population ----> ", sorted_fit_idxs[-1][0])
-        print("worst parent --------------->", sorted_fit_idxs[self.to_select - 1][0])
-        print("average fitness ------> ", sum(self.fitnesses) / len(self.fitnesses))
-        print("===================================================\n")
+        log_writer.add_scalar("Best/fitness", sorted_fit_idxs[0][0], generation_idx)
+        log_writer.add_scalar("Best/learning rate", self.population[max_idx].learning_rate, generation_idx)
+        log_writer.add_scalar("Best/avg instinct activation", self.instinct_average_list[max_idx], generation_idx)
+        log_writer.add_scalar("Worst/fitness", sorted_fit_idxs[-1][0], generation_idx)
+        log_writer.add_scalar("Worst/elite fitness", sorted_fit_idxs[self.to_select - 1][0], generation_idx)
+        log_writer.add_scalar("Average fitness", sum(self.fitnesses) / len(self.fitnesses), generation_idx)
 
         # next generation
         for i in range(self.pop_size):
@@ -213,6 +194,9 @@ def rollout(args, din, dout, pool, device, exp_save_dir, pop_size=140, elite_pro
         pop_size = 10
         elite_prop = 0.2
 
+    ## Open log file
+    log_writer = SummaryWriter(exp_save_dir, max_queue=1, filename_suffix="log")
+
     # torch.manual_seed(args.seed)
     if not os.path.exists(args.save_dir):
         os.makedirs(args.save_dir)
@@ -234,17 +218,7 @@ def rollout(args, din, dout, pool, device, exp_save_dir, pop_size=140, elite_pro
             fitness_list = list(pool.map(fitness_calculation_, solutions))
 
         solver.tell(fitness_list)
-        result, best_f = solver.step(iteration, args, device)
-        # ========= Render =========
-        # episode_rollout(result.model)
-        # env.render_episode()
-        # ==========================
+        result, best_f = solver.step(iteration, log_writer)
         gen_time = time.time()
         save_population(args, solver.population, result, iteration, exp_save_dir)
-        print(
-            "Generation: {}\n The best individual has {} as the reward".format(
-                iteration, best_f
-            )
-        )
-        print("wall clock time == {}".format(gen_time - start_time))
     return result
