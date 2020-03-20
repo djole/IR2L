@@ -89,7 +89,7 @@ def get_args():
     parser.add_argument(
         "--pop-size",
         type=positive_nonzero_int,
-        default=500,
+        default=240,
         help="Define how large is the genetic algorithm population",
     )
     parser.add_argument(
