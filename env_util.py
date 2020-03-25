@@ -8,7 +8,7 @@ HLP = HAZARD_LOC_PARAM
 GOAL_LOC_PARAM = 1.8
 GLP = GOAL_LOC_PARAM
 GOALS = [(-GLP, -GLP), (GLP, GLP), (GLP, -GLP), (-GLP, GLP)]
-config = {'num_steps': 350,
+config = {'num_steps': 1000,
           'observe_goal_lidar': False,
           'observe_box_lidar': False,
           'observe_qpos': True,
