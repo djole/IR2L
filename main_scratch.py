@@ -34,7 +34,7 @@ HLP = HAZARD_LOC_PARAM
 GOAL_LOC_PARAM = 1.8
 GLP = GOAL_LOC_PARAM
 GOALS = [(-GLP, -GLP), (GLP, GLP), (GLP, -GLP), (-GLP, GLP)]
-config = {'num_steps': 200,
+config = {'num_steps': 1000,
           'observe_goal_lidar': False,
           'observe_box_lidar': False,
           'observe_qpos': True,
@@ -170,6 +170,7 @@ def train_maml_like_ppo_(
 
         fits, info = evaluate(actor_critic, ob_rms, envs, NUM_PROC, device, instinct_on=inst_on)
         fitnesses.append(fits)
+        print(f"evaluation fitness after {j} updates is {fits}")
 
     return (fitnesses[-1] - violation_cost), 0, 0
 
@@ -191,7 +192,7 @@ if __name__ == "__main__":
         args,
         args.lr,
         num_steps=40000,
-        num_updates=1,#300,
+        num_updates=300,
         inst_on=False,
         visualize=True
     )
