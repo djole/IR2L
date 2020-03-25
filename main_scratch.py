@@ -41,6 +41,7 @@ config = {'num_steps': 1000,
           'observe_hazards': True,
           'goal_locations': [(-GLP, -GLP)],
           'robot_locations': [(0, 0)],
+          'robot_rot': 2,
           'lidar_max_dist': 1,
           'task': 'goal',
           'goal_size': 0.1,
@@ -52,7 +53,7 @@ config = {'num_steps': 1000,
           'hazards_locations': [(-HLP, -HLP), (HLP, HLP), (HLP, -HLP), (-HLP, HLP)],
           'constrain_hazards': True,
           'robot_base': 'xmls/point.xml',
-          'sensors_obs': [], #['accelerometer', 'velocimeter', 'gyro', 'magnetometer'],
+          'sensors_obs': ['accelerometer', 'velocimeter', 'gyro', 'magnetometer'],
           'lidar_num_bins': 8,
           'placements_extents': [-2, -2, 2, 2]}
 
@@ -168,7 +169,7 @@ def train_maml_like_ppo_(
         if ob_rms is not None:
             ob_rms = ob_rms.ob_rms
 
-        fits, info = evaluate(actor_critic, ob_rms, envs, NUM_PROC, device, instinct_on=inst_on)
+        fits, info = evaluate(actor_critic, ob_rms, envs, NUM_PROC, device, instinct_on=inst_on, visualise=False)
         fitnesses.append(fits)
         print(f"evaluation fitness after {j} updates is {fits}")
 
