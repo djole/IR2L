@@ -27,7 +27,8 @@ config = {'num_steps': 1000,
           'hazards_locations': [(-HLP, -HLP), (HLP, HLP), (HLP, -HLP), (-HLP, HLP)],
           'constrain_hazards': True,
           'robot_base': 'xmls/point.xml',
-          'sensors_obs': ['magnetometer'], #['accelerometer', 'velocimeter', 'gyro', 'magnetometer'],
+          'robot_rot': 0,
+          'sensors_obs': ['accelerometer', 'velocimeter', 'gyro', 'magnetometer'],
           'lidar_num_bins': 8,
           'placements_extents': [-2, -2, 2, 2]}
 
