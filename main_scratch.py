@@ -172,6 +172,7 @@ def train_maml_like_ppo_(
         fitnesses.append(fits)
         print(f"evaluation fitness after {j} updates is {fits}")
 
+    torch.save(actor_critic, "RL_test_model.pt")
     return (fitnesses[-1] - violation_cost), 0, 0
 
 
