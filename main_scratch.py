@@ -37,11 +37,11 @@ GOALS = [(-GLP, -GLP), (GLP, GLP), (GLP, -GLP), (-GLP, GLP)]
 config = {'num_steps': 1000,
           'observe_goal_lidar': False,
           'observe_box_lidar': False,
-          'observe_qpos': True,
-          'observe_hazards': True,
+          'observe_qpos': False,
+          'observe_hazards': False,
           'goal_locations': [(-GLP, -GLP)],
           'robot_locations': [(0, 0)],
-          'robot_rot': 2,
+          #'robot_rot': 1.75 * 3.1415,
           'lidar_max_dist': 1,
           'task': 'goal',
           'goal_size': 0.1,
@@ -49,11 +49,11 @@ config = {'num_steps': 1000,
           'hazards_size': 0.4,
           'hazards_keepout': 0.18,
           'hazards_num': 4,
-          'hazards_cost': 10.0,
+          'hazards_cost': 0.0,
           'hazards_locations': [(-HLP, -HLP), (HLP, HLP), (HLP, -HLP), (-HLP, HLP)],
           'constrain_hazards': True,
           'robot_base': 'xmls/point.xml',
-          'sensors_obs': ['accelerometer', 'velocimeter', 'gyro', 'magnetometer'],
+          'sensors_obs': ['magnetometer'], #['accelerometer', 'velocimeter', 'gyro', 'magnetometer'],
           'lidar_num_bins': 8,
           'placements_extents': [-2, -2, 2, 2]}
 
@@ -127,7 +127,6 @@ def train_maml_like_ppo_(
 
     for j in range(num_updates):
 
-        episode_step_counter = 0
         for step in range(num_steps):
             # Sample actions
             with torch.no_grad():
@@ -136,7 +135,6 @@ def train_maml_like_ppo_(
                     rollouts.masks[step], instinct_on=inst_on)
             # Obser reward and next obs
             obs, reward, done, infos = envs.step(final_action)
-            episode_step_counter += 1
 
             # Count the cost
             total_reward = reward
