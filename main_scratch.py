@@ -37,11 +37,11 @@ GOALS = [(-GLP, -GLP), (GLP, GLP), (GLP, -GLP), (-GLP, GLP)]
 config = {'num_steps': 1000,
           'observe_goal_lidar': False,
           'observe_box_lidar': False,
-          'observe_qpos': False,
+          'observe_qpos': True,
           'observe_hazards': False,
           'goal_locations': [(-GLP, -GLP)],
           'robot_locations': [(0, 0)],
-          #'robot_rot': 1.75 * 3.1415,
+          'robot_rot': 0 * 3.1415,
           'lidar_max_dist': 1,
           'task': 'goal',
           'goal_size': 0.1,
@@ -53,7 +53,7 @@ config = {'num_steps': 1000,
           'hazards_locations': [(-HLP, -HLP), (HLP, HLP), (HLP, -HLP), (-HLP, HLP)],
           'constrain_hazards': True,
           'robot_base': 'xmls/point.xml',
-          'sensors_obs': ['magnetometer'], #['accelerometer', 'velocimeter', 'gyro', 'magnetometer'],
+          'sensors_obs': ['accelerometer', 'velocimeter', 'gyro', 'magnetometer'],
           'lidar_num_bins': 8,
           'placements_extents': [-2, -2, 2, 2]}
 
@@ -183,6 +183,8 @@ if __name__ == "__main__":
         env_name, args.seed, 1, args.gamma, None, torch.device("cpu"), False
     )
     print("start the train function")
+    args.init_sigma = 0.7
+    args.lr = 0.0001
     init_sigma = args.init_sigma
     init_model = init_ppo(envs, log(init_sigma))
     #init_model = torch.load("saved_model.pt")
@@ -192,7 +194,7 @@ if __name__ == "__main__":
         args,
         args.lr,
         num_steps=40000,
-        num_updates=300,
+        num_updates=20,
         inst_on=False,
         visualize=True
     )
