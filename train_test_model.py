@@ -8,7 +8,7 @@ import numpy as np
 from a2c_ppo_acktr import algo, utils
 from a2c_ppo_acktr.envs import make_vec_envs
 from a2c_ppo_acktr.evaluation import evaluate
-from a2c_ppo_acktr.model import init_ppo
+from a2c_ppo_acktr.model import init_ppo, PolicyWithInstinct
 from a2c_ppo_acktr.storage import RolloutStorage
 from arguments import get_args
 
@@ -16,13 +16,21 @@ from env_util import register_set_goal
 
 NUM_PROC = 1
 
+def apply_from_list(weights, model : PolicyWithInstinct):
+    to_params_dct = model.get_evolvable_params()
+
+    for ptensor, w in zip(to_params_dct, weights):
+        w_tensor = torch.Tensor(w)
+        ptensor.data.copy_(w_tensor)
+
+
 def inner_loop_ppo(
-    init_model,
+    weights,
     args,
     learning_rate,
-    num_steps=4000,
-    num_updates=1,
-    run_idx=0,
+    num_steps,
+    num_updates,
+    run_idx,
 ):
 
     torch.set_num_threads(1)
@@ -33,8 +41,12 @@ def inner_loop_ppo(
     envs = make_vec_envs(env_name, np.random.randint(2**32), NUM_PROC,
                          args.gamma, None, device, allow_early_resets=True, normalize=args.norm_vectors)
 
-    actor_critic = copy.deepcopy(init_model)
+    actor_critic = init_ppo(envs, log(args.init_sigma))
     actor_critic.to(device)
+
+    # apply the weights to the model
+    apply_from_list(weights, actor_critic)
+
 
     agent = algo.PPO(
         actor_critic,
