@@ -4,21 +4,18 @@ from math import log
 
 import torch
 import numpy as np
-from gym.utils import seeding
 import gym
 from gym.envs.registration import register
 import safety_gym
 
-from statistics import mean
 
 from a2c_ppo_acktr import algo, utils
 from a2c_ppo_acktr.envs import make_vec_envs
 from a2c_ppo_acktr.evaluation import evaluate
-from a2c_ppo_acktr.model import init_default_ppo, init_ppo
+from a2c_ppo_acktr.model import init_default_ppo, init_ppo, PolicyWithInstinct
 from a2c_ppo_acktr.storage import RolloutStorage
 from arguments import get_args
-
-import random
+from main_es import get_model_weights
 
 #config = {
 #    'robot_base': 'xmls/point.xml',
@@ -34,7 +31,7 @@ HLP = HAZARD_LOC_PARAM
 GOAL_LOC_PARAM = 1.8
 GLP = GOAL_LOC_PARAM
 GOALS = [(-GLP, -GLP), (GLP, GLP), (GLP, -GLP), (-GLP, GLP)]
-config = {'num_steps': 1000,
+config = {'num_steps': 200,
           'observe_goal_lidar': False,
           'observe_box_lidar': False,
           'observe_qpos': True,
@@ -82,16 +79,24 @@ def register_set_goal(goal_idx):
     return env_name
 
 
-def train_maml_like_ppo_(
-    init_model,
+def apply_from_list(weights, model : PolicyWithInstinct):
+    to_params_dct = model.get_evolvable_params()
+
+    for ptensor, w in zip(to_params_dct, weights):
+        w_tensor = torch.Tensor(w)
+        ptensor.data.copy_(w_tensor)
+
+def inner_loop_ppo(
+    weights,
     args,
     learning_rate,
-    num_steps=4000,
-    num_updates=1,
-    run_idx=2,
-    inst_on=True,
-    visualize=False,
+    num_steps,
+    num_updates,
+    run_idx,
+    inst_on,
+    visualize
 ):
+
     torch.set_num_threads(1)
     device = torch.device("cpu")
 
@@ -100,8 +105,12 @@ def train_maml_like_ppo_(
     envs = make_vec_envs(env_name, np.random.randint(2**32), NUM_PROC,
                          args.gamma, None, device, allow_early_resets=True, normalize=args.norm_vectors)
 
-    actor_critic = copy.deepcopy(init_model)
+    actor_critic = init_ppo(envs, log(args.init_sigma))
     actor_critic.to(device)
+
+    # apply the weights to the model
+    apply_from_list(weights, actor_critic)
+
 
     agent = algo.PPO(
         actor_critic,
@@ -127,52 +136,52 @@ def train_maml_like_ppo_(
 
     for j in range(num_updates):
 
-        for step in range(num_steps):
-            # Sample actions
-            with torch.no_grad():
-                value, action, action_log_prob, recurrent_hidden_states, (final_action, _) = actor_critic.act(
-                    rollouts.obs[step], rollouts.recurrent_hidden_states[step],
-                    rollouts.masks[step], instinct_on=inst_on)
-            # Obser reward and next obs
-            obs, reward, done, infos = envs.step(final_action)
+        #episode_step_counter = 0
+        #for step in range(num_steps):
+        #    # Sample actions
+        #    with torch.no_grad():
+        #        value, action, action_log_prob, recurrent_hidden_states, (final_action, _) = actor_critic.act(
+        #            rollouts.obs[step], rollouts.recurrent_hidden_states[step],
+        #            rollouts.masks[step])
+        #    # Obser reward and next obs
+        #    obs, reward, done, infos = envs.step(final_action)
+        #    episode_step_counter += 1
 
-            # Count the cost
-            total_reward = reward
-            for info in infos:
-                violation_cost += info['cost']
-                total_reward -= info['cost']
+        #    # Count the cost
+        #    total_reward = reward
+        #    for info in infos:
+        #        violation_cost += info['cost']
+        #        total_reward -= info['cost']
 
-            # If done then clean the history of observations.
-            masks = torch.FloatTensor(
-                [[0.0] if done_ else [1.0] for done_ in done])
-            bad_masks = torch.FloatTensor(
-                [[0.0] if 'bad_transition' in info.keys() else [1.0]
-                 for info in infos])
-            rollouts.insert(obs, recurrent_hidden_states, action,
-                            action_log_prob, value, total_reward, masks, bad_masks)
+        #    # If done then clean the history of observations.
+        #    masks = torch.FloatTensor(
+        #        [[0.0] if done_ else [1.0] for done_ in done])
+        #    bad_masks = torch.FloatTensor(
+        #        [[0.0] if 'bad_transition' in info.keys() else [1.0]
+        #         for info in infos])
+        #    rollouts.insert(obs, recurrent_hidden_states, action,
+        #                    action_log_prob, value, total_reward, masks, bad_masks)
 
-        with torch.no_grad():
-            next_value = actor_critic.get_value(
-                rollouts.obs[-1], rollouts.recurrent_hidden_states[-1],
-                rollouts.masks[-1]).detach()
+        #with torch.no_grad():
+        #    next_value = actor_critic.get_value(
+        #        rollouts.obs[-1], rollouts.recurrent_hidden_states[-1],
+        #        rollouts.masks[-1]).detach()
 
-        rollouts.compute_returns(next_value, args.use_gae, args.gamma,
-                                 args.gae_lambda, args.use_proper_time_limits)
+        #rollouts.compute_returns(next_value, args.use_gae, args.gamma,
+        #                         args.gae_lambda, args.use_proper_time_limits)
 
-        value_loss, action_loss, dist_entropy = agent.update(rollouts)
+        #value_loss, action_loss, dist_entropy = agent.update(rollouts)
 
-        rollouts.after_update()
+        #rollouts.after_update()
 
         ob_rms = utils.get_vec_normalize(envs)
         if ob_rms is not None:
             ob_rms = ob_rms.ob_rms
 
-        fits, info = evaluate(actor_critic, ob_rms, envs, NUM_PROC, device, instinct_on=inst_on, visualise=False)
+        fits, info = evaluate(actor_critic, ob_rms, envs, NUM_PROC, device, instinct_on=inst_on, visualise=visualize)
         fitnesses.append(fits)
-        print(f"evaluation fitness after {j} updates is {fits}")
 
-    torch.save(actor_critic, "RL_test_model.pt")
-    return (fitnesses[-1] - violation_cost), 0, 0
+    return (fitnesses[-1]), 0, 0
 
 
 if __name__ == "__main__":
@@ -183,19 +192,21 @@ if __name__ == "__main__":
         env_name, args.seed, 1, args.gamma, None, torch.device("cpu"), False
     )
     print("start the train function")
-    args.init_sigma = 0.7
-    args.lr = 0.0001
-    init_sigma = args.init_sigma
-    init_model = init_ppo(envs, log(init_sigma))
-    #init_model = torch.load("saved_model.pt")
+    #parameters = torch.load("trained_models/pulled_from_server/es_testing/saved_weights_gen_192.dat")
 
-    fitness = train_maml_like_ppo_(
-        init_model,
+    blueprint_model = init_ppo(envs, log(args.init_sigma))
+
+    parameters = get_model_weights(blueprint_model)
+    parameters.append(np.array([args.lr]))
+
+    fitness = inner_loop_ppo(
+        parameters,
         args,
         args.lr,
         num_steps=40000,
         num_updates=20,
-        inst_on=False,
+        run_idx=0,
+        inst_on=True,
         visualize=True
     )
 
