@@ -8,7 +8,7 @@ HLP = HAZARD_LOC_PARAM
 GOAL_LOC_PARAM = 1.8
 GLP = GOAL_LOC_PARAM
 GOALS = [(-GLP, -GLP), (GLP, GLP), (GLP, -GLP), (-GLP, GLP)]
-config = {'num_steps': 1000,
+config = {'num_steps': 200,
           'observe_goal_lidar': False,
           'observe_box_lidar': False,
           'observe_qpos': True,
@@ -25,7 +25,7 @@ config = {'num_steps': 1000,
           'hazards_num': 4,
           'hazards_cost': 0.0,
           'hazards_locations': [(-HLP, -HLP), (HLP, HLP), (HLP, -HLP), (-HLP, HLP)],
-          'constrain_hazards': True,
+          'constrain_hazards': False,
           'robot_base': 'xmls/point.xml',
           'sensors_obs': ['accelerometer', 'velocimeter', 'gyro', 'magnetometer'],
           'lidar_num_bins': 8,
