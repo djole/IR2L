@@ -41,10 +41,23 @@ def es_fitness_funct(parameters, args, num_steps, num_updates, num_goals):
 if __name__ == "__main__":
 
     pop_size = 10
-    threads = 2
     num_steps = 40000
 
     args = get_args()
+
+    # set up the parallelization
+    try:
+        from mpipool import Pool
+        pool = Pool()
+    except:
+        print('using multiprocessing, be careful!')
+        from multiprocessing import Pool
+        from multiprocessing import cpu_count
+
+        n_proc = cpu_count() if args.num_proc == -1 else args.num_proc
+        pool = Pool(n_proc)
+
+
     env_name = register_set_goal(0)
     init_sigma = args.init_sigma
 
@@ -57,7 +70,7 @@ if __name__ == "__main__":
     start_weights.append(np.array([args.lr]))
 
     #fitness_function = make_es_fitness_funct(args, num_steps, 1, args.num_goal_samples)
-    fitness_function = fitness_calculation_ = partial(
+    fitness_function = partial(
             es_fitness_funct, args=args, num_steps=num_steps, num_updates=1, num_goals=args.num_goal_samples
         )
 
@@ -68,6 +81,6 @@ if __name__ == "__main__":
         sigma=0.3,
         learning_rate=0.1,
         decay=0.995,
-        num_threads=threads,
-    )  # , folder=args.folder)
-    es.run(1000, print_step=1)
+    )
+
+    es.run(1000, pool=pool, print_step=1)

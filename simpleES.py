@@ -1,11 +1,9 @@
 import numpy as np
-import multiprocessing as mp
 import time
 
 import torch
 
 np.random.seed(0)
-
 
 def compute_ranks(x):
     """
@@ -36,11 +34,13 @@ def flatten_weights(weights):
         w_flat = np.append(w_flat, w.flatten())
     return w_flat
 
-def worker_process(get_reward_func, weights):  # (arg):
+def worker_process(input):  # (arg):
     # !!!get_reward_func, weights = arg
     # print("P")
     # print(np.mean(weights) )
     # print(0.01 * np.mean(weights) )
+    get_reward_func = input[0]
+    weights = input[1]
     wp = flatten_weights(weights)
 
     # weights decay
@@ -60,7 +60,6 @@ class EvolutionStrategy(object):
         sigma=0.1,
         learning_rate=0.03,
         decay=0.999,
-        num_threads=1,
     ):
 
         self.weights = weights
@@ -69,7 +68,6 @@ class EvolutionStrategy(object):
         self.SIGMA = sigma
         self.learning_rate = learning_rate
         self.decay = decay
-        self.num_threads = mp.cpu_count() if num_threads == -1 else num_threads
 
     def _get_weights_try(self, w, p):
         weights_try = []
@@ -119,19 +117,19 @@ class EvolutionStrategy(object):
 
                 # print ("test ", worker_process((self.get_reward, weights_try1)) )
 
-                a = (self.get_reward, weights_try1)
-                results += [pool.apply_async(worker_process, args=a)]
+                #a = (self.get_reward, weights_try1)
+                #results += [pool.apply_async(worker_process, args=a)]
 
-                # !!!worker_args.append( (self.get_reward, weights_try1) )
+                worker_args.append( (self.get_reward, weights_try1) )
 
                 # worker_args.append( (self.get_reward, weights_try2) )
 
             # worker_args = ((self.get_reward, self._get_weights_try(self.weights, p)) for p in population)
 
-            rewards = [
-                res.get() for res in results
-            ]  # rewards = [res.get(timeout=1) for res in results] #
-            # !!!rewards  = pool.map(worker_process, worker_args)
+            #rewards = [
+            #    res.get() for res in results
+            #]  # rewards = [res.get(timeout=1) for res in results] #
+            rewards  = list(pool.map(worker_process, worker_args))
             # rewards = pool.apply_async(worker_process, worker_args)
             # rewards  = pool.map(, worker_args)
 
@@ -171,8 +169,7 @@ class EvolutionStrategy(object):
 
         # print(self.learning_rate, self.SIGMA)
 
-    def run(self, iterations, print_step=10):
-        pool = mp.Pool(self.num_threads) if self.num_threads > 1 else None
+    def run(self, iterations, pool, print_step=10):
         for iteration in range(iterations):
 
             start = time.time()
@@ -197,6 +194,6 @@ class EvolutionStrategy(object):
                     self.get_weights(), "saved_weights_gen_{}.dat".format(iteration)
                 )
 
-        if pool is not None:
-            pool.close()
-            pool.join()
+        #if pool is not None:
+        #    pool.close()
+        #    pool.join()
