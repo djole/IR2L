@@ -1,3 +1,5 @@
+import os
+
 from train_test_model import inner_loop_ppo
 from arguments import get_args
 from env_util import register_set_goal
@@ -5,6 +7,7 @@ from math import log
 from a2c_ppo_acktr.model import init_ppo, PolicyWithInstinct
 from a2c_ppo_acktr.envs import make_vec_envs
 from simpleES import EvolutionStrategy
+from exp_dir_util import get_experiment_save_dir, get_start_gen_idx
 
 from functools import partial
 import torch
@@ -44,6 +47,7 @@ if __name__ == "__main__":
     num_steps = 40000
 
     args = get_args()
+    experiment_save_dir = get_experiment_save_dir(args)
 
     # set up the parallelization
     try:
@@ -64,10 +68,15 @@ if __name__ == "__main__":
     envs = make_vec_envs(
         env_name, args.seed, 1, args.gamma, None, torch.device("cpu"), False
     )
-    blueprint_model = init_ppo(envs, log(init_sigma))
 
-    start_weights = get_model_weights(blueprint_model)
-    start_weights.append(np.array([args.lr]))
+
+    if args.load_ga:
+        last_iter = get_start_gen_idx(args.load_ga, experiment_save_dir) - 1
+        start_weights = torch.load(os.path.join(experiment_save_dir, f"saved_weights_gen_{last_iter}.dat"))
+    else:
+        blueprint_model = init_ppo(envs, log(init_sigma))
+        start_weights = get_model_weights(blueprint_model)
+        start_weights.append(np.array([args.lr]))
 
     #fitness_function = make_es_fitness_funct(args, num_steps, 1, args.num_goal_samples)
     fitness_function = partial(
@@ -81,6 +90,7 @@ if __name__ == "__main__":
         sigma=0.3,
         learning_rate=0.1,
         decay=0.995,
+        experiment_save_dir=experiment_save_dir
     )
 
-    es.run(1000, pool=pool, print_step=1)
+    es.run(1000, pool=pool, print_step=1, start_iteration=get_start_gen_idx(args.load_ga, experiment_save_dir))
