@@ -1,7 +1,9 @@
 import numpy as np
 import time
+import os
 
 import torch
+from torch.utils.tensorboard import SummaryWriter
 
 np.random.seed(0)
 
@@ -60,6 +62,7 @@ class EvolutionStrategy(object):
         sigma=0.1,
         learning_rate=0.03,
         decay=0.999,
+        experiment_save_dir=""
     ):
 
         self.weights = weights
@@ -68,6 +71,7 @@ class EvolutionStrategy(object):
         self.SIGMA = sigma
         self.learning_rate = learning_rate
         self.decay = decay
+        self.exp_save_dir = experiment_save_dir
 
     def _get_weights_try(self, w, p):
         weights_try = []
@@ -169,8 +173,9 @@ class EvolutionStrategy(object):
 
         # print(self.learning_rate, self.SIGMA)
 
-    def run(self, iterations, pool, print_step=10):
-        for iteration in range(iterations):
+    def run(self, iterations, pool, print_step=10, start_iteration=0):
+        log_writer = SummaryWriter(self.exp_save_dir, max_queue=1, filename_suffix="log")
+        for iteration in range(start_iteration, iterations):
 
             start = time.time()
             population = self._get_population()
@@ -180,18 +185,12 @@ class EvolutionStrategy(object):
             end = time.time()
 
             if (iteration + 1) % print_step == 0:
-                print(
-                    "iter %d. reward: %f    lr: %f    sigma: %f elapsed: %f"
-                    % (
-                        iteration + 1,
-                        self.get_reward(self.weights),
-                        self.learning_rate,
-                        self.SIGMA,
-                        end - start,
-                    )
-                )
+                log_writer.add_scalar("Fitness", self.get_reward(self.weights), iteration+1)
+                log_writer.add_scalar("learning rate", self.learning_rate, iteration+1)
+                log_writer.add_scalar("Sigma", self.SIGMA, iteration+1)
+
                 torch.save(
-                    self.get_weights(), "saved_weights_gen_{}.dat".format(iteration)
+                    self.get_weights(), os.path.join(self.exp_save_dir, f"saved_weights_gen_{iteration}.dat")
                 )
 
         #if pool is not None:
