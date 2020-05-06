@@ -54,12 +54,7 @@ if __name__ == "__main__":
         from mpipool import Pool
         pool = Pool()
     except:
-        print('using multiprocessing, be careful!')
-        from multiprocessing import Pool
-        from multiprocessing import cpu_count
-
-        n_proc = cpu_count() if args.num_proc == -1 else args.num_proc
-        pool = Pool(n_proc)
+        pool = None
 
 
     env_name = register_set_goal(0)
