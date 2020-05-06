@@ -185,13 +185,16 @@ class EvolutionStrategy(object):
             end = time.time()
 
             if (iteration + 1) % print_step == 0:
-                log_writer.add_scalar("Fitness", self.get_reward(self.weights), iteration+1)
+                fitness = self.get_reward(self.weights)
+                log_writer.add_scalar("Fitness", fitness, iteration+1)
                 log_writer.add_scalar("learning rate", self.learning_rate, iteration+1)
                 log_writer.add_scalar("Sigma", self.SIGMA, iteration+1)
 
                 torch.save(
                     self.get_weights(), os.path.join(self.exp_save_dir, f"saved_weights_gen_{iteration}.dat")
                 )
+                print(f"Iter. {iteration+1}, hours since start {(end-start)/3600}"
+                      f"Fitness {fitness}, learning rate {self.learning_rate}, Sigma {self.SIGMA}")
 
         #if pool is not None:
         #    pool.close()
