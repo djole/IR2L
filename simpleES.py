@@ -34,13 +34,13 @@ def flatten_weights(weights):
         w_flat = np.append(w_flat, w.flatten())
     return w_flat
 
-def worker_process(input):  # (arg):
+def worker_process(get_reward_func, weights):  # (arg):
     # !!!get_reward_func, weights = arg
     # print("P")
     # print(np.mean(weights) )
     # print(0.01 * np.mean(weights) )
-    get_reward_func = input[0]
-    weights = input[1]
+    #get_reward_func = input[0]
+    #weights = input[1]
     wp = flatten_weights(weights)
 
     # weights decay
