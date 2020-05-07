@@ -47,7 +47,6 @@ if __name__ == "__main__":
     num_steps = 40000
 
     args = get_args()
-    experiment_save_dir = get_experiment_save_dir(args)
 
     # set up the parallelization
     try:
@@ -56,7 +55,7 @@ if __name__ == "__main__":
     except:
         pool = None
 
-
+    experiment_save_dir = get_experiment_save_dir(args)
     env_name = register_set_goal(0)
     init_sigma = args.init_sigma
 
