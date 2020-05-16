@@ -72,43 +72,43 @@ def inner_loop_ppo(
 
     for j in range(num_updates):
 
-        #episode_step_counter = 0
-        #for step in range(num_steps):
-        #    # Sample actions
-        #    with torch.no_grad():
-        #        value, action, action_log_prob, recurrent_hidden_states, (final_action, _) = actor_critic.act(
-        #            rollouts.obs[step], rollouts.recurrent_hidden_states[step],
-        #            rollouts.masks[step])
-        #    # Obser reward and next obs
-        #    obs, reward, done, infos = envs.step(final_action)
-        #    episode_step_counter += 1
+        episode_step_counter = 0
+        for step in range(num_steps):
+            # Sample actions
+            with torch.no_grad():
+                value, action, action_log_prob, recurrent_hidden_states, (final_action, _) = actor_critic.act(
+                    rollouts.obs[step], rollouts.recurrent_hidden_states[step],
+                    rollouts.masks[step])
+            # Obser reward and next obs
+            obs, reward, done, infos = envs.step(final_action)
+            episode_step_counter += 1
 
-        #    # Count the cost
-        #    total_reward = reward
-        #    for info in infos:
-        #        violation_cost += info['cost']
-        #        total_reward -= info['cost']
+            # Count the cost
+            total_reward = reward
+            for info in infos:
+                violation_cost += info['cost']
+                total_reward -= info['cost']
 
-        #    # If done then clean the history of observations.
-        #    masks = torch.FloatTensor(
-        #        [[0.0] if done_ else [1.0] for done_ in done])
-        #    bad_masks = torch.FloatTensor(
-        #        [[0.0] if 'bad_transition' in info.keys() else [1.0]
-        #         for info in infos])
-        #    rollouts.insert(obs, recurrent_hidden_states, action,
-        #                    action_log_prob, value, total_reward, masks, bad_masks)
+            # If done then clean the history of observations.
+            masks = torch.FloatTensor(
+                [[0.0] if done_ else [1.0] for done_ in done])
+            bad_masks = torch.FloatTensor(
+                [[0.0] if 'bad_transition' in info.keys() else [1.0]
+                 for info in infos])
+            rollouts.insert(obs, recurrent_hidden_states, action,
+                            action_log_prob, value, total_reward, masks, bad_masks)
 
-        #with torch.no_grad():
-        #    next_value = actor_critic.get_value(
-        #        rollouts.obs[-1], rollouts.recurrent_hidden_states[-1],
-        #        rollouts.masks[-1]).detach()
+        with torch.no_grad():
+            next_value = actor_critic.get_value(
+                rollouts.obs[-1], rollouts.recurrent_hidden_states[-1],
+                rollouts.masks[-1]).detach()
 
-        #rollouts.compute_returns(next_value, args.use_gae, args.gamma,
-        #                         args.gae_lambda, args.use_proper_time_limits)
+        rollouts.compute_returns(next_value, args.use_gae, args.gamma,
+                                 args.gae_lambda, args.use_proper_time_limits)
 
-        #value_loss, action_loss, dist_entropy = agent.update(rollouts)
+        value_loss, action_loss, dist_entropy = agent.update(rollouts)
 
-        #rollouts.after_update()
+        rollouts.after_update()
 
         ob_rms = utils.get_vec_normalize(envs)
         if ob_rms is not None:
