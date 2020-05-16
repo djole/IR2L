@@ -35,7 +35,7 @@ config = {'num_steps': 200,
           'observe_goal_lidar': False,
           'observe_box_lidar': False,
           'observe_qpos': True,
-          'observe_hazards': False,
+          'observe_hazards': True,
           'goal_locations': [(-GLP, -GLP)],
           'robot_locations': [(0, 0)],
           'robot_rot': 0 * 3.1415,
@@ -46,7 +46,7 @@ config = {'num_steps': 200,
           'hazards_size': 0.4,
           'hazards_keepout': 0.18,
           'hazards_num': 4,
-          'hazards_cost': 0.0,
+          'hazards_cost': -10.0,
           'hazards_locations': [(-HLP, -HLP), (HLP, HLP), (HLP, -HLP), (-HLP, HLP)],
           'constrain_hazards': True,
           'robot_base': 'xmls/point.xml',
@@ -136,51 +136,53 @@ def inner_loop_ppo(
 
     for j in range(num_updates):
 
-        #episode_step_counter = 0
-        #for step in range(num_steps):
-        #    # Sample actions
-        #    with torch.no_grad():
-        #        value, action, action_log_prob, recurrent_hidden_states, (final_action, _) = actor_critic.act(
-        #            rollouts.obs[step], rollouts.recurrent_hidden_states[step],
-        #            rollouts.masks[step])
-        #    # Obser reward and next obs
-        #    obs, reward, done, infos = envs.step(final_action)
-        #    episode_step_counter += 1
+        episode_step_counter = 0
+        for step in range(num_steps):
+            # Sample actions
+            with torch.no_grad():
+                value, action, action_log_prob, recurrent_hidden_states, (final_action, _) = actor_critic.act(
+                    rollouts.obs[step], rollouts.recurrent_hidden_states[step],
+                    rollouts.masks[step])
+            # Obser reward and next obs
+            obs, reward, done, infos = envs.step(final_action)
+            episode_step_counter += 1
 
-        #    # Count the cost
-        #    total_reward = reward
-        #    for info in infos:
-        #        violation_cost += info['cost']
-        #        total_reward -= info['cost']
+            # Count the cost
+            total_reward = reward
+            for info in infos:
+                violation_cost += info['cost']
+                total_reward -= info['cost']
 
-        #    # If done then clean the history of observations.
-        #    masks = torch.FloatTensor(
-        #        [[0.0] if done_ else [1.0] for done_ in done])
-        #    bad_masks = torch.FloatTensor(
-        #        [[0.0] if 'bad_transition' in info.keys() else [1.0]
-        #         for info in infos])
-        #    rollouts.insert(obs, recurrent_hidden_states, action,
-        #                    action_log_prob, value, total_reward, masks, bad_masks)
+            # If done then clean the history of observations.
+            masks = torch.FloatTensor(
+                [[0.0] if done_ else [1.0] for done_ in done])
+            bad_masks = torch.FloatTensor(
+                [[0.0] if 'bad_transition' in info.keys() else [1.0]
+                 for info in infos])
+            rollouts.insert(obs, recurrent_hidden_states, action,
+                            action_log_prob, value, total_reward, masks, bad_masks)
 
-        #with torch.no_grad():
-        #    next_value = actor_critic.get_value(
-        #        rollouts.obs[-1], rollouts.recurrent_hidden_states[-1],
-        #        rollouts.masks[-1]).detach()
+        with torch.no_grad():
+            next_value = actor_critic.get_value(
+                rollouts.obs[-1], rollouts.recurrent_hidden_states[-1],
+                rollouts.masks[-1]).detach()
 
-        #rollouts.compute_returns(next_value, args.use_gae, args.gamma,
-        #                         args.gae_lambda, args.use_proper_time_limits)
+        rollouts.compute_returns(next_value, args.use_gae, args.gamma,
+                                 args.gae_lambda, args.use_proper_time_limits)
 
-        #value_loss, action_loss, dist_entropy = agent.update(rollouts)
+        value_loss, action_loss, dist_entropy = agent.update(rollouts)
 
-        #rollouts.after_update()
+        rollouts.after_update()
 
         ob_rms = utils.get_vec_normalize(envs)
         if ob_rms is not None:
             ob_rms = ob_rms.ob_rms
 
         fits, info = evaluate(actor_critic, ob_rms, envs, NUM_PROC, device, instinct_on=inst_on, visualise=visualize)
+        if j % 1 == 0:
+            print(fits[-1])
         fitnesses.append(fits)
-
+        torch.save(actor_critic, "model_rl.pt")
     return (fitnesses[-1]), 0, 0
 
 
@@ -192,10 +194,11 @@ if __name__ == "__main__":
         env_name, args.seed, 1, args.gamma, None, torch.device("cpu"), False
     )
     print("start the train function")
-    #parameters = torch.load("trained_models/pulled_from_server/es_testing/saved_weights_gen_192.dat")
+    #parameters = torch.load("/Users/djrg/code/instincts/modular_rl_safety_gym/trained_models/pulled_from_server/es_testing/2ba1a655bd_0/saved_weights_gen_238.dat")
 
+    args.init_sigma = 1.0
+    args.lr = 0.001
     blueprint_model = init_ppo(envs, log(args.init_sigma))
-
     parameters = get_model_weights(blueprint_model)
     parameters.append(np.array([args.lr]))
 
@@ -204,10 +207,10 @@ if __name__ == "__main__":
         args,
         args.lr,
         num_steps=40000,
-        num_updates=20,
+        num_updates=200,
         run_idx=0,
         inst_on=True,
-        visualize=True
+        visualize=False
     )
 
 
