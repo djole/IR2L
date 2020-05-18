@@ -43,7 +43,7 @@ def es_fitness_funct(parameters, args, num_steps, num_updates, num_goals):
 
 if __name__ == "__main__":
 
-    pop_size = 10
+    pop_size = 504
     num_steps = 4000
 
     args = get_args()
