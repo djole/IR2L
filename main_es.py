@@ -81,7 +81,7 @@ if __name__ == "__main__":
         start_weights,
         fitness_function,
         population_size=pop_size,
-        sigma=0.3,
+        sigma=0.1,
         learning_rate=0.1,
         decay=0.995,
         experiment_save_dir=experiment_save_dir
