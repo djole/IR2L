@@ -25,7 +25,7 @@ config = {'num_steps': 200,
           'goal_keepout': 0.305,
           'hazards_size': 0.4,
           'hazards_keepout': 0.18,
-          'hazards_num': 4,
+          'hazards_num': 0,
           'hazards_cost': 0.0,
           'hazards_locations': [], #[(-HLP, -HLP), (HLP, HLP), (HLP, -HLP), (-HLP, HLP)],
           'constrain_hazards': False,
@@ -43,18 +43,18 @@ ENV_NAME = CUSTOM_ENV
 NP_RANDOM, _ = seeding.np_random(None)
 
 
-def _sample_ring_task():
+def _sample_goal_task():
     radius = NP_RANDOM.uniform(1, 2, size=(1, 1))[0][0]
     alpha = NP_RANDOM.uniform(0.0, 1.0, size=(1, 1)) * 2 * pi
     alpha = alpha[0][0]
-    goal = np.array([[radius * cos(alpha), radius * sin(alpha)]])
+    goal = np.array([radius * cos(alpha), radius * sin(alpha)])
     return goal
 
-def _sample_start_position():
-    radius = NP_RANDOM.uniform(0, 2, size=(1, 1))[0][0]
+def _sample_start_position(goal, keepout):
+    radius = NP_RANDOM.uniform(keepout, 2, size=(1, 1))[0][0]
     alpha = NP_RANDOM.uniform(0.0, 1.0, size=(1, 1)) * 2 * pi
     alpha = alpha[0][0]
-    goal = np.array([[radius * cos(alpha), radius * sin(alpha)]])
+    goal = np.array([goal[0] + (radius * cos(alpha)), goal[1] + (radius * sin(alpha))])
     return goal
 
 def _array2label(arr):
@@ -66,10 +66,11 @@ def _array2label(arr):
     return arr_str
 
 def register_set_goal(goal_idx):
-    goal = _sample_ring_task().flatten() #GOALS[goal_idx]
-    start = _sample_start_position()
+    goal = _sample_goal_task() #GOALS[goal_idx]
+    start = _sample_start_position(goal, 1.0)
     config['goal_locations'] = [goal]
-    lbl = _array2label(goal)# + _array2label(start)
+    config['robot_locations'] = [start]
+    lbl = _array2label(goal) + _array2label(start)
 
     env_name = f'SafexpCustomEnvironmentGoal{lbl}-v0'
 
