@@ -1,6 +1,9 @@
 import gym
 import safety_gym
 from gym.envs.registration import register
+from gym.utils import seeding
+import numpy as np
+from math import cos, sin, pi
 
 HAZARD_LOC_PARAM = 1
 HLP = HAZARD_LOC_PARAM
@@ -24,7 +27,7 @@ config = {'num_steps': 200,
           'hazards_keepout': 0.18,
           'hazards_num': 4,
           'hazards_cost': 0.0,
-          'hazards_locations': [(-HLP, -HLP), (HLP, HLP), (HLP, -HLP), (-HLP, HLP)],
+          'hazards_locations': [], #[(-HLP, -HLP), (HLP, HLP), (HLP, -HLP), (-HLP, HLP)],
           'constrain_hazards': False,
           'robot_base': 'xmls/point.xml',
           'sensors_obs': ['accelerometer', 'velocimeter', 'gyro', 'magnetometer'],
@@ -37,13 +40,38 @@ config = {'num_steps': 200,
 
 CUSTOM_ENV = 'SafexpCustomEnvironment-v0'
 ENV_NAME = CUSTOM_ENV
+NP_RANDOM, _ = seeding.np_random(None)
 
+
+def _sample_ring_task():
+    radius = NP_RANDOM.uniform(1, 2, size=(1, 1))[0][0]
+    alpha = NP_RANDOM.uniform(0.0, 1.0, size=(1, 1)) * 2 * pi
+    alpha = alpha[0][0]
+    goal = np.array([[radius * cos(alpha), radius * sin(alpha)]])
+    return goal
+
+def _sample_start_position():
+    radius = NP_RANDOM.uniform(0, 2, size=(1, 1))[0][0]
+    alpha = NP_RANDOM.uniform(0.0, 1.0, size=(1, 1)) * 2 * pi
+    alpha = alpha[0][0]
+    goal = np.array([[radius * cos(alpha), radius * sin(alpha)]])
+    return goal
+
+def _array2label(arr):
+    # This is out-of-ass method to turn the goal into a sensible label
+    arr_flat = arr.flatten()
+    arr_str = ""
+    for a in arr_flat:
+        arr_str += str(int(a**2*10e2))
+    return arr_str
 
 def register_set_goal(goal_idx):
-    goal = GOALS[goal_idx]
+    goal = _sample_ring_task().flatten() #GOALS[goal_idx]
+    start = _sample_start_position()
     config['goal_locations'] = [goal]
+    lbl = _array2label(goal)# + _array2label(start)
 
-    env_name = f'SafexpCustomEnvironmentGoal{goal_idx}-v0'
+    env_name = f'SafexpCustomEnvironmentGoal{lbl}-v0'
 
     try:
         register(id=env_name,
