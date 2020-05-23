@@ -1,11 +1,12 @@
 import copy
 import statistics
-from math import log
+from math import log, sin, cos, pi
 
 import torch
 import numpy as np
 import gym
 from gym.envs.registration import register
+from gym.utils import seeding
 import safety_gym
 
 
@@ -25,6 +26,7 @@ from main_es import get_model_weights
 #    'hazards_num': 4,
 #}
 
+NP_RANDOM, _ = seeding.np_random(None)
 HAZARD_LOC_PARAM = 1
 HLP = HAZARD_LOC_PARAM
 
@@ -35,7 +37,7 @@ config = {'num_steps': 200,
           'observe_goal_lidar': False,
           'observe_box_lidar': False,
           'observe_qpos': True,
-          'observe_hazards': True,
+          'observe_hazards': False,
           'goal_locations': [(-GLP, -GLP)],
           'robot_locations': [(0, 0)],
           'robot_rot': 0 * 3.1415,
@@ -45,10 +47,10 @@ config = {'num_steps': 200,
           'goal_keepout': 0.305,
           'hazards_size': 0.4,
           'hazards_keepout': 0.18,
-          'hazards_num': 4,
-          'hazards_cost': -10.0,
-          'hazards_locations': [(-HLP, -HLP), (HLP, HLP), (HLP, -HLP), (-HLP, HLP)],
-          'constrain_hazards': True,
+          'hazards_num': 0,
+          'hazards_cost': 0.0,
+          'hazards_locations': [], #[(-HLP, -HLP), (HLP, HLP), (HLP, -HLP), (-HLP, HLP)],
+          'constrain_hazards': False,
           'robot_base': 'xmls/point.xml',
           'sensors_obs': ['accelerometer', 'velocimeter', 'gyro', 'magnetometer'],
           'lidar_num_bins': 8,
@@ -63,11 +65,40 @@ CUSTOM_ENV = 'SafexpCustomEnvironment-v0'
 ENV_NAME = CUSTOM_ENV
 NUM_PROC = 1
 
-def register_set_goal(goal_idx):
-    goal = GOALS[goal_idx]
-    config['goal_locations'] = [goal]
 
-    env_name = f'SafexpCustomEnvironmentGoal{goal_idx}-v0'
+def _sample_goal_task():
+    radius = NP_RANDOM.uniform(1, 2, size=(1, 1))[0][0]
+    alpha = NP_RANDOM.uniform(0.0, 1.0, size=(1, 1)) * 2 * pi
+    alpha = alpha[0][0]
+    goal = np.array([radius * cos(alpha), radius * sin(alpha)])
+    return goal
+
+
+def _sample_start_position(goal, keepout):
+    radius = NP_RANDOM.uniform(keepout, 2, size=(1, 1))[0][0]
+    alpha = NP_RANDOM.uniform(0.0, 1.0, size=(1, 1)) * 2 * pi
+    alpha = alpha[0][0]
+    goal = np.array([goal[0] + (radius * cos(alpha)), goal[1] + (radius * sin(alpha))])
+    return goal
+
+
+def _array2label(arr):
+    # This is out-of-ass method to turn the goal into a sensible label
+    arr_flat = arr.flatten()
+    arr_str = ""
+    for a in arr_flat:
+        arr_str += str(int(a**2*10e2))
+    return arr_str
+
+
+def register_set_goal(goal_idx):
+    goal = _sample_goal_task() #GOALS[goal_idx]
+    #start = _sample_start_position(goal, 1.0)
+    config['goal_locations'] = [goal]
+    #config['robot_locations'] = [start]
+    lbl = _array2label(goal) #+ _array2label(start)
+
+    env_name = f'SafexpCustomEnvironmentGoal{lbl}-v0'
 
     try:
         register(id=env_name,
@@ -142,9 +173,10 @@ def inner_loop_ppo(
             with torch.no_grad():
                 value, action, action_log_prob, recurrent_hidden_states, (final_action, _) = actor_critic.act(
                     rollouts.obs[step], rollouts.recurrent_hidden_states[step],
-                    rollouts.masks[step])
+                    rollouts.masks[step], instinct_on=inst_on)
             # Obser reward and next obs
             obs, reward, done, infos = envs.step(final_action)
+            envs.render()
             episode_step_counter += 1
 
             # Count the cost
@@ -178,7 +210,8 @@ def inner_loop_ppo(
         if ob_rms is not None:
             ob_rms = ob_rms.ob_rms
 
-        fits, info = evaluate(actor_critic, ob_rms, envs, NUM_PROC, device, instinct_on=inst_on, visualise=visualize)
+        for i in range(100):
+            fits, info = evaluate(actor_critic, ob_rms, envs, NUM_PROC, device, instinct_on=inst_on, visualise=visualize)
         if j % 1 == 0:
             print(fits[-1])
         fitnesses.append(fits)
@@ -194,23 +227,23 @@ if __name__ == "__main__":
         env_name, args.seed, 1, args.gamma, None, torch.device("cpu"), False
     )
     print("start the train function")
-    #parameters = torch.load("/Users/djrg/code/instincts/modular_rl_safety_gym/trained_models/pulled_from_server/es_testing/2ba1a655bd_0/saved_weights_gen_238.dat")
+    parameters = torch.load("/Users/djrg/code/instincts/modular_rl_safety_gym/trained_models/pulled_from_server/es_testing/random_goals_0871b3f42e_1/saved_weights_gen_204.dat")
 
-    args.init_sigma = 1.0
-    args.lr = 0.001
-    blueprint_model = init_ppo(envs, log(args.init_sigma))
-    parameters = get_model_weights(blueprint_model)
-    parameters.append(np.array([args.lr]))
+    #args.init_sigma = 0.3
+    #args.lr = 0.001
+    #blueprint_model = init_ppo(envs, log(args.init_sigma))
+    #parameters = get_model_weights(blueprint_model)
+    #parameters.append(np.array([args.lr]))
 
     fitness = inner_loop_ppo(
         parameters,
         args,
         args.lr,
-        num_steps=40000,
-        num_updates=200,
+        num_steps=8000,
+        num_updates=1,
         run_idx=0,
-        inst_on=True,
-        visualize=False
+        inst_on=False,
+        visualize=True
     )
 
 
