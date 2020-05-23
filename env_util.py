@@ -4,6 +4,9 @@ from gym.envs.registration import register
 from gym.utils import seeding
 import numpy as np
 from math import cos, sin, pi
+import torch
+
+from a2c_ppo_acktr.envs import make_vec_envs
 
 HAZARD_LOC_PARAM = 1
 HLP = HAZARD_LOC_PARAM
@@ -82,3 +85,17 @@ def register_set_goal(goal_idx):
         pass
 
     return env_name
+
+
+def make_env_list(args):
+    device = torch.device("cpu")
+    num_env = args.num_goal_samples
+    env_list = []
+    for ne in range(num_env):
+        env_name = register_set_goal(ne)
+
+        envs = make_vec_envs(env_name, np.random.randint(2**32), 1,
+                            args.gamma, None, device, allow_early_resets=True, normalize=args.norm_vectors)
+        env_list.append(envs)
+
+    return env_list

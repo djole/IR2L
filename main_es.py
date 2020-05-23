@@ -25,16 +25,16 @@ def get_model_weights(model: PolicyWithInstinct):
 
 
 # Fitness function
-def es_fitness_funct(parameters, args, num_steps, num_updates, num_goals):
+def es_fitness_funct(parameters, env_list, args, num_steps, num_updates):
     weights = parameters[:-1]
     learning_rate = parameters[-1][0]
     learning_rate = -learning_rate if learning_rate < 0 else learning_rate
 
     goal_info = [
         inner_loop_ppo(
-            weights, args, learning_rate, num_steps, num_updates, run_idx=num_att
+            weights, args, learning_rate, num_steps, num_updates, run_idx=num_att, envs=env_list[num_att]
         )
-        for num_att in range(num_goals)
+        for num_att in range(len(env_list))
     ]
     goal_fitnesses, _, _ = list(zip(*goal_info))
     return sum(goal_fitnesses)
@@ -74,12 +74,13 @@ if __name__ == "__main__":
 
     #fitness_function = make_es_fitness_funct(args, num_steps, 1, args.num_goal_samples)
     fitness_function = partial(
-            es_fitness_funct, args=args, num_steps=num_steps, num_updates=1, num_goals=args.num_goal_samples
+            es_fitness_funct, args=args, num_steps=num_steps, num_updates=1
         )
 
     es = EvolutionStrategy(
         start_weights,
         fitness_function,
+        args,
         population_size=pop_size,
         sigma=0.1,
         learning_rate=0.1,

@@ -31,16 +31,15 @@ def inner_loop_ppo(
     num_steps,
     num_updates,
     run_idx,
+    envs,
 ):
 
     torch.set_num_threads(1)
     device = torch.device("cpu")
+    #env_name = register_set_goal(run_idx)
 
-    env_name = register_set_goal(run_idx)
-
-    envs = make_vec_envs(env_name, np.random.randint(2**32), NUM_PROC,
-                         args.gamma, None, device, allow_early_resets=True, normalize=args.norm_vectors)
-
+    #envs = make_vec_envs(env_name, np.random.randint(2**32), NUM_PROC,
+    #                     args.gamma, None, device, allow_early_resets=True, normalize=args.norm_vectors)
     actor_critic = init_ppo(envs, log(args.init_sigma))
     actor_critic.to(device)
 

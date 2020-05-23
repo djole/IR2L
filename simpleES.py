@@ -1,6 +1,8 @@
 import numpy as np
 import time
 import os
+from functools import partial
+from env_util import make_env_list
 
 import torch
 from torch.utils.tensorboard import SummaryWriter
@@ -58,6 +60,7 @@ class EvolutionStrategy(object):
         self,
         weights,
         get_reward_func,
+        args,
         population_size=50,
         sigma=0.1,
         learning_rate=0.03,
@@ -72,6 +75,7 @@ class EvolutionStrategy(object):
         self.learning_rate = learning_rate
         self.decay = decay
         self.exp_save_dir = experiment_save_dir
+        self.args = args
 
     def _get_weights_try(self, w, p):
         weights_try = []
@@ -101,7 +105,7 @@ class EvolutionStrategy(object):
 
         return population
 
-    def _get_rewards(self, pool, population):
+    def _get_rewards(self, pool, population, reward_func):
 
         if pool is not None:
 
@@ -124,7 +128,7 @@ class EvolutionStrategy(object):
                 #a = (self.get_reward, weights_try1)
                 #results += [pool.apply_async(worker_process, args=a)]
 
-                worker_args.append( (self.get_reward, weights_try1) )
+                worker_args.append( (reward_func, weights_try1) )
 
                 # worker_args.append( (self.get_reward, weights_try2) )
 
@@ -141,7 +145,7 @@ class EvolutionStrategy(object):
             rewards = []
             for p in population:
                 weights_try = self._get_weights_try(self.weights, p)
-                rewards.append(self.get_reward(weights_try))
+                rewards.append(reward_func(weights_try))
         rewards = np.array(rewards)
 
         return rewards
@@ -178,14 +182,16 @@ class EvolutionStrategy(object):
         for iteration in range(start_iteration, iterations):
 
             start = time.time()
+            iter_envs = make_env_list(self.args)
+            reward_func = partial(self.get_reward, env_list=iter_envs)
             population = self._get_population()
-            rewards = self._get_rewards(pool, population)
+            rewards = self._get_rewards(pool, population, reward_func)
 
             self._update_weights(rewards, population)
             end = time.time()
 
             if (iteration + 1) % print_step == 0:
-                fitness = self.get_reward(self.weights)
+                fitness = reward_func(self.weights)
                 log_writer.add_scalar("Fitness", fitness, iteration+1)
                 log_writer.add_scalar("learning rate", self.learning_rate, iteration+1)
                 log_writer.add_scalar("Sigma", self.SIGMA, iteration+1)
