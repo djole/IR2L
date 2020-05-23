@@ -70,10 +70,10 @@ def _array2label(arr):
 
 def register_set_goal(goal_idx):
     goal = _sample_goal_task() #GOALS[goal_idx]
-    start = _sample_start_position(goal, 1.0)
+    #start = _sample_start_position(goal, 1.0)
     config['goal_locations'] = [goal]
-    config['robot_locations'] = [start]
-    lbl = _array2label(goal) + _array2label(start)
+    #config['robot_locations'] = [start]
+    lbl = _array2label(goal) #+ _array2label(start)
 
     env_name = f'SafexpCustomEnvironmentGoal{lbl}-v0'
 
