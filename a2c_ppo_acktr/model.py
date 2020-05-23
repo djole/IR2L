@@ -51,7 +51,8 @@ class PolicyWithInstinct(nn.Module):
         return self.policy.parameters()
 
 
-    def act(self, inputs, rnn_hxs, masks, deterministic=False, instinct_on=True):
+    def act(self, inputs, rnn_hxs, masks, deterministic=False, instinct_on=False):
+        instinct_on = False
         value, action, action_log_probs, rnn_hxs = self.policy.act(inputs, rnn_hxs, masks, deterministic)
         instinct_action, control = self.instinct(inputs)
 
@@ -60,6 +61,7 @@ class PolicyWithInstinct(nn.Module):
 
         if instinct_on:
             final_action = controlled_stoch_action + controlled_instinct_action
+            assert False, "instinct should be off!"
         else:
             final_action = action
 
