@@ -10,6 +10,12 @@ from a2c_ppo_acktr.utils import init
 from model import ControllerInstinct, weight_init
 
 
+def custom_weight_init(module):
+    stdv = 1.0 #1. / math.sqrt(module.weight.size(1))
+    if isinstance(module, nn.Linear):
+        module.weight.data.uniform_(-stdv, stdv)
+        module.bias.data.uniform_(-stdv, stdv)
+
 
 class Flatten(nn.Module):
     def forward(self, x):
@@ -23,6 +29,7 @@ class PolicyWithInstinct(nn.Module):
         self.instinct = ControllerInstinct(obs_shape[0], 100, action_space.shape[0])
 
         self.freeze_instinct = load_instinct
+        self.apply(custom_weight_init)
 
     @property
     def is_recurrent(self):
@@ -49,7 +56,6 @@ class PolicyWithInstinct(nn.Module):
 
     def parameters(self):
         return self.policy.parameters()
-
 
     def act(self, inputs, rnn_hxs, masks, deterministic=False, instinct_on=False):
         instinct_on = False
@@ -263,18 +269,18 @@ class MLPBase(NNBase):
         if recurrent:
             num_inputs = hidden_size
 
-        init_ = lambda m: init(m, nn.init.orthogonal_, lambda x: nn.init.
-                               constant_(x, 0), np.sqrt(2))
+        #init_ = lambda m: init(m, nn.init.orthogonal_, lambda x: nn.init.
+        #                       constant_(x, 0), np.sqrt(2))
 
         self.actor = nn.Sequential(
-            init_(nn.Linear(num_inputs, hidden_size)), nn.Tanh(),
-            init_(nn.Linear(hidden_size, hidden_size)), nn.Tanh())
+            nn.Linear(num_inputs, hidden_size), nn.Tanh(),
+            nn.Linear(hidden_size, hidden_size), nn.Tanh())
 
         self.critic = nn.Sequential(
-            init_(nn.Linear(num_inputs, hidden_size)), nn.Tanh(),
-            init_(nn.Linear(hidden_size, hidden_size)), nn.Tanh())
+            nn.Linear(num_inputs, hidden_size), nn.Tanh(),
+            nn.Linear(hidden_size, hidden_size), nn.Tanh())
 
-        self.critic_linear = init_(nn.Linear(hidden_size, 1))
+        self.critic_linear = nn.Linear(hidden_size, 1)
 
         self.train()
 

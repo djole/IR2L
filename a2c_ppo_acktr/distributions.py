@@ -73,10 +73,10 @@ class DiagGaussian(nn.Module):
     def __init__(self, num_inputs, num_outputs, init_log_std=0):
         super(DiagGaussian, self).__init__()
 
-        init_ = lambda m: init(m, nn.init.orthogonal_, lambda x: nn.init.
-                               constant_(x, 0))
+        #init_ = lambda m: init(m, nn.init.orthogonal_, lambda x: nn.init.
+        #                       constant_(x, 0))
 
-        self.fc_mean = init_(nn.Linear(num_inputs, num_outputs))
+        self.fc_mean = nn.Linear(num_inputs, num_outputs)
         self.tanh = nn.Tanh()
         self.logstd = AddBias(torch.zeros(num_outputs) + init_log_std)
 
