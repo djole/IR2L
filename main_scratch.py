@@ -8,6 +8,7 @@ import gym
 from gym.envs.registration import register
 from gym.utils import seeding
 import safety_gym
+import matplotlib.pyplot as plt
 
 
 from a2c_ppo_acktr import algo, utils
@@ -34,25 +35,26 @@ GOAL_LOC_PARAM = 1.8
 GLP = GOAL_LOC_PARAM
 GOALS = [(-GLP, -GLP), (GLP, GLP), (GLP, -GLP), (-GLP, GLP)]
 config = {'num_steps': 200,
-          'observe_goal_lidar': False,
+          'observe_goal_lidar': True,
           'observe_box_lidar': False,
-          'observe_qpos': True,
-          'observe_hazards': False,
-          'goal_locations': [(-GLP, -GLP)],
+          'observe_qpos': False,
+          'observe_hazards': True,
+          #'goal_locations': [(-GLP, -GLP)],
+          'robot_keepout': 1.0,
           'robot_locations': [(0, 0)],
-          'robot_rot': 0 * 3.1415,
-          'lidar_max_dist': 1,
+          #'robot_rot': 0 * 3.1415,
+          'lidar_max_dist': 5,
           'task': 'goal',
           'goal_size': 0.1,
           'goal_keepout': 0.305,
           'hazards_size': 0.4,
           'hazards_keepout': 0.18,
-          'hazards_num': 0,
-          'hazards_cost': 0.0,
-          'hazards_locations': [], #[(-HLP, -HLP), (HLP, HLP), (HLP, -HLP), (-HLP, HLP)],
+          'hazards_num': 4,
+          'hazards_cost': 10.0,
+          'hazards_locations': [(-HLP, -HLP), (HLP, HLP), (HLP, -HLP), (-HLP, HLP)],
           'constrain_hazards': False,
           'robot_base': 'xmls/point.xml',
-          'sensors_obs': ['accelerometer', 'velocimeter', 'gyro', 'magnetometer'],
+          'sensors_obs': [],#['accelerometer', 'velocimeter', 'gyro', 'magnetometer'],
           'lidar_num_bins': 8,
           'placements_extents': [-2, -2, 2, 2]}
 
@@ -66,12 +68,22 @@ ENV_NAME = CUSTOM_ENV
 NUM_PROC = 1
 
 
-def _sample_goal_task():
-    radius = NP_RANDOM.uniform(1, 2, size=(1, 1))[0][0]
-    alpha = NP_RANDOM.uniform(0.0, 1.0, size=(1, 1)) * 2 * pi
-    alpha = alpha[0][0]
-    goal = np.array([radius * cos(alpha), radius * sin(alpha)])
-    return goal
+def plot_weight_histogram(parameters):
+    flattened_params = []
+    for p in parameters:
+        flattened_params.append(p.flatten())
+
+    params_stacked = np.concatenate(flattened_params)
+    plt.hist(params_stacked, bins=300)
+    plt.show()
+
+
+#def _sample_goal_task():
+#    radius = NP_RANDOM.uniform(1, 2, size=(1, 1))[0][0]
+#    alpha = NP_RANDOM.uniform(0.0, 1.0, size=(1, 1)) * 2 * pi
+#    alpha = alpha[0][0]
+#    goal = np.array([radius * cos(alpha), radius * sin(alpha)])
+#    return goal
 
 
 def _sample_start_position(goal, keepout):
@@ -92,12 +104,12 @@ def _array2label(arr):
 
 
 def register_set_goal(goal_idx):
-    goal = _sample_goal_task() #GOALS[goal_idx]
+    #goal = _sample_goal_task() #GOALS[goal_idx]
     #start = _sample_start_position(goal, 1.0)
-    config['goal_locations'] = [goal]
+    #config['goal_locations'] = [goal]
     #config['robot_locations'] = [start]
-    lbl = _array2label(goal) #+ _array2label(start)
-
+    #lbl = _array2label(goal) #+ _array2label(start)
+    lbl = ""
     env_name = f'SafexpCustomEnvironmentGoal{lbl}-v0'
 
     try:
@@ -132,6 +144,7 @@ def inner_loop_ppo(
     device = torch.device("cpu")
 
     env_name = register_set_goal(run_idx)
+    #env_name = "Safexp-PointButton0-v0"
 
     envs = make_vec_envs(env_name, np.random.randint(2**32), NUM_PROC,
                          args.gamma, None, device, allow_early_resets=True, normalize=args.norm_vectors)
@@ -181,6 +194,7 @@ def inner_loop_ppo(
 
             # Count the cost
             total_reward = reward
+
             for info in infos:
                 violation_cost += info['cost']
                 total_reward -= info['cost']
@@ -210,30 +224,33 @@ def inner_loop_ppo(
         if ob_rms is not None:
             ob_rms = ob_rms.ob_rms
 
+        print("Evaluation!")
         for i in range(100):
             fits, info = evaluate(actor_critic, ob_rms, envs, NUM_PROC, device, instinct_on=inst_on, visualise=visualize)
-        if j % 1 == 0:
-            print(fits[-1])
+            print(f"Fitness {fits[-1]}")
         fitnesses.append(fits)
-        torch.save(actor_critic, "model_rl.pt")
+        #torch.save(actor_critic, "model_rl.pt")
     return (fitnesses[-1]), 0, 0
 
 
 if __name__ == "__main__":
     args = get_args()
     env_name = register_set_goal(0)
+    #env_name = "Safexp-PointButton0-v0"
 
     envs = make_vec_envs(
         env_name, args.seed, 1, args.gamma, None, torch.device("cpu"), False
     )
     print("start the train function")
-    parameters = torch.load("/Users/djrg/code/instincts/modular_rl_safety_gym/trained_models/pulled_from_server/es_testing/random_goals_0871b3f42e_1/saved_weights_gen_204.dat")
+    #parameters = torch.load("/Users/djrg/code/instincts/modular_rl_safety_gym/trained_models/pulled_from_server/es_testing/large_init_weights_sigma_9806c466da_0/saved_weights_gen_66.dat")
 
-    #args.init_sigma = 0.3
-    #args.lr = 0.001
-    #blueprint_model = init_ppo(envs, log(args.init_sigma))
-    #parameters = get_model_weights(blueprint_model)
-    #parameters.append(np.array([args.lr]))
+    args.init_sigma = 0.3
+    args.lr = 0.001
+    blueprint_model = init_ppo(envs, log(args.init_sigma))
+    parameters = get_model_weights(blueprint_model)
+    parameters.append(np.array([args.lr]))
+
+    #plot_weight_histogram(parameters)
 
     fitness = inner_loop_ppo(
         parameters,
