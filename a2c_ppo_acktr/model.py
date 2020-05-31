@@ -11,7 +11,7 @@ from model import ControllerInstinct, weight_init
 
 
 def custom_weight_init(module):
-    stdv = 1.0 #1. / math.sqrt(module.weight.size(1))
+    stdv = 0.3 #1. / math.sqrt(module.weight.size(1))
     if isinstance(module, nn.Linear):
         module.weight.data.uniform_(-stdv, stdv)
         module.bias.data.uniform_(-stdv, stdv)
