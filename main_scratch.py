@@ -177,6 +177,7 @@ def inner_loop_ppo(
 
     fitnesses = []
     violation_cost = 0
+    training_episode_cum_reward = 0
 
     for j in range(num_updates):
 
@@ -199,6 +200,10 @@ def inner_loop_ppo(
                 violation_cost += info['cost']
                 total_reward -= info['cost']
 
+            training_episode_cum_reward += total_reward
+            if done[0]:
+                print(f"training episode reward {training_episode_cum_reward}")
+                training_episode_cum_reward = 0
             # If done then clean the history of observations.
             masks = torch.FloatTensor(
                 [[0.0] if done_ else [1.0] for done_ in done])
@@ -242,13 +247,15 @@ if __name__ == "__main__":
         env_name, args.seed, 1, args.gamma, None, torch.device("cpu"), False
     )
     print("start the train function")
-    #parameters = torch.load("/Users/djrg/code/instincts/modular_rl_safety_gym/trained_models/pulled_from_server/es_testing/large_init_weights_sigma_9806c466da_0/saved_weights_gen_66.dat")
+    parameters = torch.load("/Users/djrg/code/instincts/modular_rl_safety_gym/trained_models/pulled_from_server/es_testing/goalLidar_inner_loop_d236feb737_0/saved_weights_gen_177.dat")
+    args.lr = 0 #parameters[-1][0]
+    print(f"learning rate {args.lr}")
+    #args.init_sigma = 0.3
+    #args.lr = 0.001
+    #blueprint_model = init_ppo(envs, log(args.init_sigma))
+    #parameters = get_model_weights(blueprint_model)
+    #parameters.append(np.array([args.lr]))
 
-    args.init_sigma = 0.3
-    args.lr = 0.001
-    blueprint_model = init_ppo(envs, log(args.init_sigma))
-    parameters = get_model_weights(blueprint_model)
-    parameters.append(np.array([args.lr]))
 
     #plot_weight_histogram(parameters)
 
@@ -256,7 +263,7 @@ if __name__ == "__main__":
         parameters,
         args,
         args.lr,
-        num_steps=8000,
+        num_steps=4000,
         num_updates=1,
         run_idx=0,
         inst_on=False,
