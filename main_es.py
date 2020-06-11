@@ -29,7 +29,6 @@ def es_fitness_funct(parameters, env_list, args, num_steps, num_updates):
     weights = parameters[:-1]
     # Fix the learning rate to what is defined in the arguments
     learning_rate = args.lr #parameters[-1][0]
-    print(learning_rate)
     learning_rate = -learning_rate if learning_rate < 0 else learning_rate
 
     goal_info = [
