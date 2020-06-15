@@ -13,13 +13,13 @@ HLP = HAZARD_LOC_PARAM
 
 GOAL_LOC_PARAM = 1.8
 GLP = GOAL_LOC_PARAM
-GOALS = [(-GLP, -GLP), (GLP, GLP), (GLP, -GLP), (-GLP, GLP)]
+GOALS = [np.array([-GLP, -GLP]), np.array([GLP, GLP]), np.array([GLP, -GLP]), np.array([-GLP, GLP])]
 config = {'num_steps': 200,
           'observe_goal_lidar': True,
           'observe_box_lidar': False,
           'observe_qpos': False,
-          'observe_hazards': True,
-          #'goal_locations': [(-GLP, -GLP)],
+          'observe_hazards': False,
+          'goal_locations': GOALS, #[(-GLP, -GLP)],
           'robot_keepout': 1.0,
           'robot_locations': [(0, 0)],
           #'robot_rot': 0 * 3.1415,
@@ -29,14 +29,18 @@ config = {'num_steps': 200,
           'goal_keepout': 0.305,
           'hazards_size': 0.4,
           'hazards_keepout': 0.18,
-          'hazards_num': 4,
-          'hazards_cost': 10.0,
+          'hazards_num': 0,
+          'hazards_cost': 0.0,
           'hazards_locations': [(-HLP, -HLP), (HLP, HLP), (HLP, -HLP), (-HLP, HLP)],
           'constrain_hazards': False,
           'robot_base': 'xmls/point.xml',
           'sensors_obs': [],#['accelerometer', 'velocimeter', 'gyro', 'magnetometer'],
           'lidar_num_bins': 8,
-          'placements_extents': [-2, -2, 2, 2]}
+          'placements_extents': [-2, -2, 2, 2],
+
+          'buttons_num': 1,
+          'buttons_locations': [(0.0, 3.0)],
+          'observe_buttons': True}
 
 #register(id='SafexpCustomEnvironment-v0',
 #         entry_point='safety_gym.envs.mujoco:Engine',
@@ -70,12 +74,12 @@ def _array2label(arr):
     return arr_str
 
 def register_set_goal(goal_idx):
-    #goal = _sample_goal_task() #GOALS[goal_idx]
+    goal = GOALS[goal_idx]#_sample_goal_task() #GOALS[goal_idx]
     #start = _sample_start_position(goal, 1.0)
-    #config['goal_locations'] = [goal]
+    config['goal_locations'] = [goal]
     #config['robot_locations'] = [start]
     #lbl = _array2label(goal) #+ _array2label(start)
-    lbl = ""
+    lbl = goal_idx
     env_name = f'SafexpCustomEnvironmentGoal{lbl}-v0'
 
     try:
