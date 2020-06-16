@@ -35,7 +35,7 @@ GOAL_LOC_PARAM = 1.8
 GLP = GOAL_LOC_PARAM
 GOALS = [(-GLP, -GLP), (GLP, GLP), (GLP, -GLP), (-GLP, GLP)]
 config = {'num_steps': 200,
-          'observe_goal_lidar': True,
+          'observe_goal_lidar': False,
           'observe_box_lidar': False,
           'observe_qpos': False,
           'observe_hazards': False,
@@ -251,14 +251,14 @@ if __name__ == "__main__":
         env_name, args.seed, 1, args.gamma, None, torch.device("cpu"), False
     )
     print("start the train function")
-    #parameters = torch.load("/Users/djrg/code/instincts/modular_rl_safety_gym/trained_models/pulled_from_server/es_testing/goalLidar_inner_loop_c5ab7e3876_0/saved_weights_gen_55.dat")
-    #args.lr = 0.005 #parameters[-1][0]
+    parameters = torch.load("/Users/djrg/code/instincts/modular_rl_safety_gym/trained_models/pulled_from_server/es_testing/north_star_d40c98c0e6_0/saved_weights_gen_29.dat")
+    args.lr = 0.001 #parameters[-1][0]
     #print(f"learning rate {args.lr}")
     #args.init_sigma = 0.3
     #args.lr = 0.001
-    blueprint_model = init_ppo(envs, log(args.init_sigma))
-    parameters = get_model_weights(blueprint_model)
-    parameters.append(np.array([args.lr]))
+    #blueprint_model = init_ppo(envs, log(args.init_sigma))
+    #parameters = get_model_weights(blueprint_model)
+    #parameters.append(np.array([args.lr]))
 
 
     #plot_weight_histogram(parameters)

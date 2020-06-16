@@ -15,7 +15,7 @@ GOAL_LOC_PARAM = 1.8
 GLP = GOAL_LOC_PARAM
 GOALS = [np.array([-GLP, -GLP]), np.array([GLP, GLP]), np.array([GLP, -GLP]), np.array([-GLP, GLP])]
 config = {'num_steps': 200,
-          'observe_goal_lidar': True,
+          'observe_goal_lidar': False,
           'observe_box_lidar': False,
           'observe_qpos': False,
           'observe_hazards': False,
