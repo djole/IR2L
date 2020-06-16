@@ -36,6 +36,7 @@ def inner_loop_ppo(
 
     torch.set_num_threads(1)
     device = torch.device("cpu")
+    #print(envs.venv.spec._kwargs['config']['goal_locations'])
     #env_name = register_set_goal(run_idx)
 
     #envs = make_vec_envs(env_name, np.random.randint(2**32), NUM_PROC,
