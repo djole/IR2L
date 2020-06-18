@@ -18,9 +18,9 @@ GOALS = [np.array([-GLP, -GLP]), np.array([GLP, GLP]), np.array([GLP, -GLP]), np
 CONFIG_TEMPLATE = {'num_steps': 200,
                    'observe_goal_lidar': False,
                    'observe_box_lidar': False,
-                   'observe_qpos': False,
+                   'observe_qpos': True,
                    'observe_hazards': False,
-                   'goal_locations': GOALS,  # [(-GLP, -GLP)],
+                   'goal_locations': [(-GLP, -GLP)],
                    'robot_keepout': 1.0,
                    'robot_locations': [(0, 0)],
                    # 'robot_rot': 0 * 3.1415,
@@ -35,13 +35,10 @@ CONFIG_TEMPLATE = {'num_steps': 200,
                    'hazards_locations': [(-HLP, -HLP), (HLP, HLP), (HLP, -HLP), (-HLP, HLP)],
                    'constrain_hazards': False,
                    'robot_base': 'xmls/point.xml',
-                   'sensors_obs': [],  # ['accelerometer', 'velocimeter', 'gyro', 'magnetometer'],
+                   'sensors_obs': ['magnetometer'],  # ['accelerometer', 'velocimeter', 'gyro', 'magnetometer'],
                    'lidar_num_bins': 8,
                    'placements_extents': [-2, -2, 2, 2],
-
-                   'buttons_num': 1,
-                   'buttons_locations': [(0.0, 3.0)],
-                   'observe_buttons': True}
+                   }
 
 # register(id='SafexpCustomEnvironment-v0',
 #         entry_point='safety_gym.envs.mujoco:Engine',
@@ -80,12 +77,12 @@ def _array2label(arr):
 def register_set_goal(goal_idx):
     config = copy.deepcopy(CONFIG_TEMPLATE)
 
-    goal = GOALS[goal_idx]  # _sample_goal_task() #GOALS[goal_idx]
+    goal = GOALS[0]  # _sample_goal_task() #GOALS[goal_idx]
     # start = _sample_start_position(goal, 1.0)
     config['goal_locations'] = [goal]
     # config['robot_locations'] = [start]
     # lbl = _array2label(goal) #+ _array2label(start)
-    lbl = goal_idx
+    lbl = 0#goal_idx
     env_name = f'SafexpCustomEnvironmentGoal{lbl}-v0'
 
     try:
