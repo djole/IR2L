@@ -33,13 +33,14 @@ HLP = HAZARD_LOC_PARAM
 
 GOAL_LOC_PARAM = 1.8
 GLP = GOAL_LOC_PARAM
-GOALS = [(-GLP, -GLP), (GLP, GLP), (GLP, -GLP), (-GLP, GLP)]
+# GOALS = [(-GLP, -GLP), (GLP, GLP), (GLP, -GLP), (-GLP, GLP)]
+GOALS = [np.array([1.0, 1.0]), np.array([1.0, 1.8]), np.array([1.8, 1.0]), np.array([-GLP, GLP])]
 config = {'num_steps': 200,
           'observe_goal_lidar': False,
           'observe_box_lidar': False,
           'observe_qpos': True,
           'observe_hazards': False,
-          'goal_locations': [(-GLP, -GLP)],
+          'goal_locations': GOALS,
           'robot_keepout': 1.0,
           'robot_locations': [(0, 0)],
           #'robot_rot': 0 * 3.1415,
@@ -108,12 +109,12 @@ def _array2label(arr):
 
 
 def register_set_goal(goal_idx):
-    #goal = _sample_goal_task() #GOALS[goal_idx]
-    #start = _sample_start_position(goal, 1.0)
-    #config['goal_locations'] = [goal]
-    #config['robot_locations'] = [start]
-    #lbl = _array2label(goal) #+ _array2label(start)
-    lbl = ""
+    goal = GOALS[goal_idx]  # _sample_goal_task() #GOALS[goal_idx]
+    # start = _sample_start_position(goal, 1.0)
+    config['goal_locations'] = [goal]
+    # config['robot_locations'] = [start]
+    # lbl = _array2label(goal) #+ _array2label(start)
+    lbl = goal_idx
     env_name = f'SafexpCustomEnvironmentGoal{lbl}-v0'
 
     try:
@@ -152,6 +153,8 @@ def inner_loop_ppo(
 
     envs = make_vec_envs(env_name, np.random.randint(2**32), NUM_PROC,
                          args.gamma, None, device, allow_early_resets=True, normalize=args.norm_vectors)
+
+    print(envs.venv.spec._kwargs['config']['goal_locations'])
 
     actor_critic = init_ppo(envs, log(args.init_sigma))
     actor_critic.to(device)
@@ -267,7 +270,7 @@ if __name__ == "__main__":
         parameters,
         args,
         args.lr,
-        num_steps=4000,
+        num_steps=200,
         num_updates=1,
         run_idx=0,
         inst_on=False,

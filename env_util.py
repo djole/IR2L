@@ -14,7 +14,8 @@ HLP = HAZARD_LOC_PARAM
 
 GOAL_LOC_PARAM = 1.8
 GLP = GOAL_LOC_PARAM
-GOALS = [np.array([-GLP, -GLP]), np.array([GLP, GLP]), np.array([GLP, -GLP]), np.array([-GLP, GLP])]
+#GOALS = [np.array([-GLP, -GLP]), np.array([GLP, GLP]), np.array([GLP, -GLP]), np.array([-GLP, GLP])]
+GOALS = [np.array([1.0, 1.0]), np.array([1.0, 1.8]), np.array([1.8, 1.0]), np.array([-GLP, GLP])]
 CONFIG_TEMPLATE = {'num_steps': 200,
                    'observe_goal_lidar': False,
                    'observe_box_lidar': False,
@@ -77,12 +78,12 @@ def _array2label(arr):
 def register_set_goal(goal_idx):
     config = copy.deepcopy(CONFIG_TEMPLATE)
 
-    goal = GOALS[0]  # _sample_goal_task() #GOALS[goal_idx]
+    goal = GOALS[goal_idx]  # _sample_goal_task() #GOALS[goal_idx]
     # start = _sample_start_position(goal, 1.0)
     config['goal_locations'] = [goal]
     # config['robot_locations'] = [start]
     # lbl = _array2label(goal) #+ _array2label(start)
-    lbl = 0#goal_idx
+    lbl = goal_idx
     env_name = f'SafexpCustomEnvironmentGoal{lbl}-v0'
 
     try:

@@ -33,7 +33,7 @@ def es_fitness_funct(parameters, env_list, args, num_steps, num_updates):
 
     goal_info = [
         inner_loop_ppo(
-            weights, args, learning_rate, num_steps, num_updates, run_idx=num_att, envs=env_list[num_att]
+            weights, args, learning_rate, num_steps, num_updates, run_idx=num_att, input_envs=env_list[num_att]
         )
         for num_att in range(len(env_list))
     ]

@@ -31,17 +31,17 @@ def inner_loop_ppo(
     num_steps,
     num_updates,
     run_idx,
-    envs,
+    input_envs,
 ):
 
     torch.set_num_threads(1)
     device = torch.device("cpu")
-    #print(envs.venv.spec._kwargs['config']['goal_locations'])
+    #print(input_envs.venv.spec._kwargs['config']['goal_locations'])
     #env_name = register_set_goal(run_idx)
 
     #envs = make_vec_envs(env_name, np.random.randint(2**32), NUM_PROC,
     #                     args.gamma, None, device, allow_early_resets=True, normalize=args.norm_vectors)
-    actor_critic = init_ppo(envs, log(args.init_sigma))
+    actor_critic = init_ppo(input_envs, log(args.init_sigma))
     actor_critic.to(device)
 
     # apply the weights to the model
@@ -60,10 +60,10 @@ def inner_loop_ppo(
         max_grad_norm=args.max_grad_norm)
 
     rollouts = RolloutStorage(num_steps, NUM_PROC,
-                              envs.observation_space.shape, envs.action_space,
+                              input_envs.observation_space.shape, input_envs.action_space,
                               actor_critic.recurrent_hidden_state_size)
 
-    obs = envs.reset()
+    obs = input_envs.reset()
     rollouts.obs[0].copy_(obs)
     rollouts.to(device)
 
@@ -72,49 +72,49 @@ def inner_loop_ppo(
 
     for j in range(num_updates):
 
-        #episode_step_counter = 0
-        #for step in range(num_steps):
-        #    # Sample actions
-        #    with torch.no_grad():
-        #        value, action, action_log_prob, recurrent_hidden_states, (final_action, _) = actor_critic.act(
-        #            rollouts.obs[step], rollouts.recurrent_hidden_states[step],
-        #            rollouts.masks[step])
-        #    # Obser reward and next obs
-        #    obs, reward, done, infos = envs.step(final_action)
-        #    episode_step_counter += 1
+        episode_step_counter = 0
+        for step in range(num_steps):
+            # Sample actions
+            with torch.no_grad():
+                value, action, action_log_prob, recurrent_hidden_states, (final_action, _) = actor_critic.act(
+                    rollouts.obs[step], rollouts.recurrent_hidden_states[step],
+                    rollouts.masks[step])
+            # Obser reward and next obs
+            obs, reward, done, infos = input_envs.step(final_action)
+            episode_step_counter += 1
 
-        #    # Count the cost
-        #    total_reward = reward
-        #    for info in infos:
-        #        violation_cost += info['cost']
-        #        total_reward -= info['cost']
+            # Count the cost
+            total_reward = reward
+            for info in infos:
+                violation_cost += info['cost']
+                total_reward -= info['cost']
 
-        #    # If done then clean the history of observations.
-        #    masks = torch.FloatTensor(
-        #        [[0.0] if done_ else [1.0] for done_ in done])
-        #    bad_masks = torch.FloatTensor(
-        #        [[0.0] if 'bad_transition' in info.keys() else [1.0]
-        #         for info in infos])
-        #    rollouts.insert(obs, recurrent_hidden_states, action,
-        #                    action_log_prob, value, total_reward, masks, bad_masks)
+            # If done then clean the history of observations.
+            masks = torch.FloatTensor(
+                [[0.0] if done_ else [1.0] for done_ in done])
+            bad_masks = torch.FloatTensor(
+                [[0.0] if 'bad_transition' in info.keys() else [1.0]
+                 for info in infos])
+            rollouts.insert(obs, recurrent_hidden_states, action,
+                            action_log_prob, value, total_reward, masks, bad_masks)
 
-        #with torch.no_grad():
-        #    next_value = actor_critic.get_value(
-        #        rollouts.obs[-1], rollouts.recurrent_hidden_states[-1],
-        #        rollouts.masks[-1]).detach()
+        with torch.no_grad():
+            next_value = actor_critic.get_value(
+                rollouts.obs[-1], rollouts.recurrent_hidden_states[-1],
+                rollouts.masks[-1]).detach()
 
-        #rollouts.compute_returns(next_value, args.use_gae, args.gamma,
-        #                         args.gae_lambda, args.use_proper_time_limits)
+        rollouts.compute_returns(next_value, args.use_gae, args.gamma,
+                                 args.gae_lambda, args.use_proper_time_limits)
 
-        #value_loss, action_loss, dist_entropy = agent.update(rollouts)
+        value_loss, action_loss, dist_entropy = agent.update(rollouts)
 
-        #rollouts.after_update()
+        rollouts.after_update()
 
-        ob_rms = utils.get_vec_normalize(envs)
+        ob_rms = utils.get_vec_normalize(input_envs)
         if ob_rms is not None:
             ob_rms = ob_rms.ob_rms
 
-        fits, info = evaluate(actor_critic, ob_rms, envs, NUM_PROC, device)
+        fits, info = evaluate(actor_critic, ob_rms, input_envs, NUM_PROC, device)
         fitnesses.append(fits)
 
     return (fitnesses[-1]), 0, 0
