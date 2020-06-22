@@ -10,7 +10,6 @@ from gym.utils import seeding
 import safety_gym
 import matplotlib.pyplot as plt
 
-
 from a2c_ppo_acktr import algo, utils
 from a2c_ppo_acktr.envs import make_vec_envs
 from a2c_ppo_acktr.evaluation import evaluate
@@ -19,13 +18,13 @@ from a2c_ppo_acktr.storage import RolloutStorage
 from arguments import get_args
 from main_es import get_model_weights
 
-#config = {
+# config = {
 #    'robot_base': 'xmls/point.xml',
 #    #'observe_sensors': False,
 #    'observe_goal_lidar': True,
 #    'constrain_hazards': True,
 #    'hazards_num': 4,
-#}
+# }
 
 NP_RANDOM, _ = seeding.np_random(None)
 HAZARD_LOC_PARAM = 1
@@ -34,16 +33,17 @@ HLP = HAZARD_LOC_PARAM
 GOAL_LOC_PARAM = 1.8
 GLP = GOAL_LOC_PARAM
 # GOALS = [(-GLP, -GLP), (GLP, GLP), (GLP, -GLP), (-GLP, GLP)]
-GOALS = [np.array([1.0, 1.0]), np.array([1.0, 1.8]), np.array([1.8, 1.0]), np.array([-GLP, GLP])]
+GOALS = [np.array([-GLP, GLP]), np.array([GLP, GLP])]  # , np.array([1.8, 1.0]), np.array([-GLP, GLP])]
+CURRENT_GOAL = 1
 config = {'num_steps': 200,
           'observe_goal_lidar': False,
           'observe_box_lidar': False,
           'observe_qpos': True,
           'observe_hazards': False,
-          'goal_locations': GOALS,
+          'goal_locations': [(-GLP, -GLP)],
           'robot_keepout': 1.0,
           'robot_locations': [(0, 0)],
-          #'robot_rot': 0 * 3.1415,
+          # 'robot_rot': 0 * 3.1415,
           'lidar_max_dist': 5,
           'task': 'goal',
           'goal_size': 0.1,
@@ -55,20 +55,17 @@ config = {'num_steps': 200,
           'hazards_locations': [(-HLP, -HLP), (HLP, HLP), (HLP, -HLP), (-HLP, HLP)],
           'constrain_hazards': False,
           'robot_base': 'xmls/point.xml',
-          'sensors_obs': ['magnetometer'],#['accelerometer', 'velocimeter', 'gyro', 'magnetometer'],
+          'sensors_obs': ['magnetometer'],  # ['accelerometer', 'velocimeter', 'gyro', 'magnetometer'],
           'lidar_num_bins': 8,
           'placements_extents': [-2, -2, 2, 2],
           }
-          #'buttons_num': 1,
-          #'buttons_locations': [(0.0, 3.0)],
-          #'observe_buttons': True}
 
-#register(id='SafexpCustomEnvironment-v0',
+# register(id='SafexpCustomEnvironment-v0',
 #         entry_point='safety_gym.envs.mujoco:Engine',
 #         kwargs={'config': config})
 
 CUSTOM_ENV = 'SafexpCustomEnvironment-v0'
-#ENV_NAME = "Safexp-PointGoal0-v0"
+# ENV_NAME = "Safexp-PointGoal0-v0"
 ENV_NAME = CUSTOM_ENV
 NUM_PROC = 1
 
@@ -83,7 +80,7 @@ def plot_weight_histogram(parameters):
     plt.show()
 
 
-#def _sample_goal_task():
+# def _sample_goal_task():
 #    radius = NP_RANDOM.uniform(1, 2, size=(1, 1))[0][0]
 #    alpha = NP_RANDOM.uniform(0.0, 1.0, size=(1, 1)) * 2 * pi
 #    alpha = alpha[0][0]
@@ -104,7 +101,7 @@ def _array2label(arr):
     arr_flat = arr.flatten()
     arr_str = ""
     for a in arr_flat:
-        arr_str += str(int(a**2*10e2))
+        arr_str += str(int(a ** 2 * 10e2))
     return arr_str
 
 
@@ -127,31 +124,31 @@ def register_set_goal(goal_idx):
     return env_name
 
 
-def apply_from_list(weights, model : PolicyWithInstinct):
+def apply_from_list(weights, model: PolicyWithInstinct):
     to_params_dct = model.get_evolvable_params()
 
     for ptensor, w in zip(to_params_dct, weights):
         w_tensor = torch.Tensor(w)
         ptensor.data.copy_(w_tensor)
 
-def inner_loop_ppo(
-    weights,
-    args,
-    learning_rate,
-    num_steps,
-    num_updates,
-    run_idx,
-    inst_on,
-    visualize
-):
 
+def inner_loop_ppo(
+        weights,
+        args,
+        learning_rate,
+        num_steps,
+        num_updates,
+        run_idx,
+        inst_on,
+        visualize
+):
     torch.set_num_threads(1)
     device = torch.device("cpu")
 
     env_name = register_set_goal(run_idx)
-    #env_name = "Safexp-PointButton0-v0"
+    # env_name = "Safexp-PointButton0-v0"
 
-    envs = make_vec_envs(env_name, np.random.randint(2**32), NUM_PROC,
+    envs = make_vec_envs(env_name, np.random.randint(2 ** 32), NUM_PROC,
                          args.gamma, None, device, allow_early_resets=True, normalize=args.norm_vectors)
 
     print(envs.venv.spec._kwargs['config']['goal_locations'])
@@ -161,7 +158,6 @@ def inner_loop_ppo(
 
     # apply the weights to the model
     apply_from_list(weights, actor_critic)
-
 
     agent = algo.PPO(
         actor_critic,
@@ -238,43 +234,42 @@ def inner_loop_ppo(
 
         print("Evaluation!")
         for i in range(100):
-            fits, info = evaluate(actor_critic, ob_rms, envs, NUM_PROC, device, instinct_on=inst_on, visualise=visualize)
+            fits, info = evaluate(actor_critic, ob_rms, envs, NUM_PROC, device, instinct_on=inst_on,
+                                  visualise=visualize)
             print(f"Fitness {fits[-1]}")
         fitnesses.append(fits)
-        #torch.save(actor_critic, "model_rl.pt")
+        # torch.save(actor_critic, "model_rl.pt")
     return (fitnesses[-1]), 0, 0
 
 
 if __name__ == "__main__":
     args = get_args()
     env_name = register_set_goal(0)
-    #env_name = "Safexp-PointButton0-v0"
+    # env_name = "Safexp-PointButton0-v0"
 
     envs = make_vec_envs(
         env_name, args.seed, 1, args.gamma, None, torch.device("cpu"), False
     )
     print("start the train function")
-    #parameters = torch.load("/Users/djrg/code/instincts/modular_rl_safety_gym/trained_models/pulled_from_server/es_testing/north_star_d40c98c0e6_0/saved_weights_gen_29.dat")
-    args.lr = 0.001 #parameters[-1][0]
-    #print(f"learning rate {args.lr}")
-    args.init_sigma = 0.3
-    args.lr = 0.001
-    blueprint_model = init_ppo(envs, log(args.init_sigma))
-    parameters = get_model_weights(blueprint_model)
-    parameters.append(np.array([args.lr]))
+    parameters = torch.load(
+        "/Users/djrg/code/instincts/modular_rl_safety_gym/trained_models/pulled_from_server/es_testing/1ef9fc344b_0/saved_weights_gen_339.dat")
+    # args.lr = 0.001 #parameters[-1][0]
+    ##print(f"learning rate {args.lr}")
+    # args.init_sigma = 0.3
+    # args.lr = 0.001
+    # blueprint_model = init_ppo(envs, log(args.init_sigma))
+    # parameters = get_model_weights(blueprint_model)
+    # parameters.append(np.array([args.lr]))
 
-
-    #plot_weight_histogram(parameters)
+    # plot_weight_histogram(parameters)
 
     fitness = inner_loop_ppo(
         parameters,
         args,
         args.lr,
-        num_steps=200,
+        num_steps=4000,
         num_updates=1,
-        run_idx=0,
+        run_idx=CURRENT_GOAL,
         inst_on=False,
         visualize=True
     )
-
-

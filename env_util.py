@@ -15,7 +15,7 @@ HLP = HAZARD_LOC_PARAM
 GOAL_LOC_PARAM = 1.8
 GLP = GOAL_LOC_PARAM
 #GOALS = [np.array([-GLP, -GLP]), np.array([GLP, GLP]), np.array([GLP, -GLP]), np.array([-GLP, GLP])]
-GOALS = [np.array([1.0, 1.0]), np.array([1.0, 1.8]), np.array([1.8, 1.0]), np.array([-GLP, GLP])]
+GOALS = [np.array([-GLP, GLP]), np.array([GLP, GLP])]
 CONFIG_TEMPLATE = {'num_steps': 200,
                    'observe_goal_lidar': False,
                    'observe_box_lidar': False,
