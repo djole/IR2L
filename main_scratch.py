@@ -34,7 +34,7 @@ GOAL_LOC_PARAM = 1.8
 GLP = GOAL_LOC_PARAM
 # GOALS = [(-GLP, -GLP), (GLP, GLP), (GLP, -GLP), (-GLP, GLP)]
 GOALS = [np.array([-GLP, GLP]), np.array([GLP, GLP])]  # , np.array([1.8, 1.0]), np.array([-GLP, GLP])]
-CURRENT_GOAL = 1
+CURRENT_GOAL = 0
 config = {'num_steps': 200,
           'observe_goal_lidar': False,
           'observe_box_lidar': False,
@@ -43,7 +43,7 @@ config = {'num_steps': 200,
           'goal_locations': [(-GLP, -GLP)],
           'robot_keepout': 1.0,
           'robot_locations': [(0, 0)],
-          # 'robot_rot': 0 * 3.1415,
+          'robot_rot': 0 * 3.1415,
           'lidar_max_dist': 5,
           'task': 'goal',
           'goal_size': 0.1,
@@ -58,6 +58,7 @@ config = {'num_steps': 200,
           'sensors_obs': ['magnetometer'],  # ['accelerometer', 'velocimeter', 'gyro', 'magnetometer'],
           'lidar_num_bins': 8,
           'placements_extents': [-2, -2, 2, 2],
+          '_seed': 1
           }
 
 # register(id='SafexpCustomEnvironment-v0',
@@ -151,7 +152,7 @@ def inner_loop_ppo(
     envs = make_vec_envs(env_name, np.random.randint(2 ** 32), NUM_PROC,
                          args.gamma, None, device, allow_early_resets=True, normalize=args.norm_vectors)
 
-    print(envs.venv.spec._kwargs['config']['goal_locations'])
+    #print(envs.venv.spec._kwargs['config']['goal_locations'])
 
     actor_critic = init_ppo(envs, log(args.init_sigma))
     actor_critic.to(device)
@@ -193,7 +194,7 @@ def inner_loop_ppo(
                     rollouts.masks[step], instinct_on=inst_on)
             # Obser reward and next obs
             obs, reward, done, infos = envs.step(final_action)
-            envs.render()
+            #envs.render()
             episode_step_counter += 1
 
             # Count the cost
@@ -234,6 +235,8 @@ def inner_loop_ppo(
 
         print("Evaluation!")
         for i in range(100):
+            envs = make_vec_envs(env_name, np.random.randint(2 ** 32), NUM_PROC,
+                                 args.gamma, None, device, allow_early_resets=True, normalize=args.norm_vectors)
             fits, info = evaluate(actor_critic, ob_rms, envs, NUM_PROC, device, instinct_on=inst_on,
                                   visualise=visualize)
             print(f"Fitness {fits[-1]}")
@@ -252,11 +255,11 @@ if __name__ == "__main__":
     )
     print("start the train function")
     parameters = torch.load(
-        "/Users/djrg/code/instincts/modular_rl_safety_gym/trained_models/pulled_from_server/es_testing/1ef9fc344b_0/saved_weights_gen_339.dat")
+        "/Users/djrg/code/instincts/modular_rl_safety_gym/trained_models/pulled_from_server/es_testing/x_spread_2_goal/0005_LR_5a6207a4f6_0/saved_weights_gen_310.dat")
     # args.lr = 0.001 #parameters[-1][0]
     ##print(f"learning rate {args.lr}")
     # args.init_sigma = 0.3
-    # args.lr = 0.001
+    args.lr = 0.005
     # blueprint_model = init_ppo(envs, log(args.init_sigma))
     # parameters = get_model_weights(blueprint_model)
     # parameters.append(np.array([args.lr]))
