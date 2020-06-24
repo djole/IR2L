@@ -67,7 +67,7 @@ def get_args():
         help="discount factor (default: 0.99)",
     )
     parser.add_argument(
-        "--lr", type=float, default=0.001, help="learning rate (default: 0.001)"
+        "--lr", type=float, default=0.005, help="learning rate (default: 0.005)"
     )
     parser.add_argument("--ep-training", action="store_true", default=False)
 
@@ -100,7 +100,7 @@ def get_args():
     )
     parser.add_argument(
         "--num-goal-samples",
-        default=2,
+        default=4,
         type=positive_nonzero_int,
         help='Defined how many steps in the cycle through goals',
     )
