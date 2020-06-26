@@ -43,7 +43,7 @@ config = {'num_steps': 200,
           'goal_locations': [(-GLP, -GLP)],
           'robot_keepout': 1.0,
           'robot_locations': [(0, 0)],
-          'robot_rot': 0 * 3.1415,
+          'robot_rot': 0.5 * 3.1415,
           'lidar_max_dist': 5,
           'task': 'goal',
           'goal_size': 0.1,
@@ -194,7 +194,7 @@ def inner_loop_ppo(
                     rollouts.masks[step], instinct_on=inst_on)
             # Obser reward and next obs
             obs, reward, done, infos = envs.step(final_action)
-            #envs.render()
+            envs.render()
             episode_step_counter += 1
 
             # Count the cost
@@ -235,8 +235,8 @@ def inner_loop_ppo(
 
         print("Evaluation!")
         for i in range(100):
-            envs = make_vec_envs(env_name, np.random.randint(2 ** 32), NUM_PROC,
-                                 args.gamma, None, device, allow_early_resets=True, normalize=args.norm_vectors)
+            #envs = make_vec_envs(env_name, np.random.randint(2 ** 32), NUM_PROC,
+            #                     args.gamma, None, device, allow_early_resets=True, normalize=args.norm_vectors)
             fits, info = evaluate(actor_critic, ob_rms, envs, NUM_PROC, device, instinct_on=inst_on,
                                   visualise=visualize)
             print(f"Fitness {fits[-1]}")
@@ -254,15 +254,16 @@ if __name__ == "__main__":
         env_name, args.seed, 1, args.gamma, None, torch.device("cpu"), False
     )
     print("start the train function")
-    parameters = torch.load(
-        "/Users/djrg/code/instincts/modular_rl_safety_gym/trained_models/pulled_from_server/es_testing/x_spread_2_goal/0005_LR_5a6207a4f6_0/saved_weights_gen_310.dat")
+    #parameters = torch.load(
+    #    "/Users/djrg/code/instincts/modular_rl_safety_gym/trained_models/pulled_from_server/es_testing/x_spread_2_goal/uniform_samples_fixed_angle_0b3a2f1a1f_0/saved_weights_gen_143.dat")
     # args.lr = 0.001 #parameters[-1][0]
     ##print(f"learning rate {args.lr}")
-    # args.init_sigma = 0.3
+    print(args.init_sigma)
+    args.init_sigma = 0.7
     args.lr = 0.005
-    # blueprint_model = init_ppo(envs, log(args.init_sigma))
-    # parameters = get_model_weights(blueprint_model)
-    # parameters.append(np.array([args.lr]))
+    blueprint_model = init_ppo(envs, log(args.init_sigma))
+    parameters = get_model_weights(blueprint_model)
+    parameters.append(np.array([args.lr]))
 
     # plot_weight_histogram(parameters)
 

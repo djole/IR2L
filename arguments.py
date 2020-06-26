@@ -100,7 +100,7 @@ def get_args():
     )
     parser.add_argument(
         "--num-goal-samples",
-        default=4,
+        default=2,
         type=positive_nonzero_int,
         help='Defined how many steps in the cycle through goals',
     )

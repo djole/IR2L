@@ -21,10 +21,10 @@ CONFIG_TEMPLATE = {'num_steps': 200,
                    'observe_box_lidar': False,
                    'observe_qpos': True,
                    'observe_hazards': False,
-                   #'goal_locations': [(-GLP, -GLP)],
+                   'goal_locations': [(-GLP, -GLP)],
                    'robot_keepout': 1.0,
                    'robot_locations': [(0, 0)],
-                   'robot_rot': 0 * 3.1415,
+                   'robot_rot': 0.5 * 3.1415,
                    'lidar_max_dist': 5,
                    'task': 'goal',
                    'goal_size': 0.1,
@@ -79,13 +79,13 @@ def _array2label(arr):
 def register_set_goal(goal_idx):
     config = copy.deepcopy(CONFIG_TEMPLATE)
 
-    #goal = GOALS[goal_idx]  # _sample_goal_task() #GOALS[goal_idx]
+    goal = GOALS[goal_idx]  # _sample_goal_task() #GOALS[goal_idx]
     # start = _sample_start_position(goal, 1.0)
-    #config['goal_locations'] = [goal]
+    config['goal_locations'] = [goal]
     # config['robot_locations'] = [start]
     # lbl = _array2label(goal) #+ _array2label(start)
-    #lbl = goal_idx
-    lbl = ""
+    lbl = goal_idx
+    #lbl = ""
     env_name = f'SafexpCustomEnvironmentGoal{lbl}-v0'
 
     try:
