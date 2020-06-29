@@ -43,7 +43,7 @@ config = {'num_steps': 200,
           'goal_locations': [(-GLP, -GLP)],
           'robot_keepout': 1.0,
           'robot_locations': [(0, 0)],
-          'robot_rot': 0.5 * 3.1415,
+          #'robot_rot': 0.5 * 3.1415,
           'lidar_max_dist': 5,
           'task': 'goal',
           'goal_size': 0.1,
@@ -58,7 +58,8 @@ config = {'num_steps': 200,
           'sensors_obs': ['magnetometer'],  # ['accelerometer', 'velocimeter', 'gyro', 'magnetometer'],
           'lidar_num_bins': 8,
           'placements_extents': [-2, -2, 2, 2],
-          '_seed': 1
+          '_seed': 1,
+          'frameskip_binom_n': 10,
           }
 
 # register(id='SafexpCustomEnvironment-v0',
@@ -193,8 +194,9 @@ def inner_loop_ppo(
                     rollouts.obs[step], rollouts.recurrent_hidden_states[step],
                     rollouts.masks[step], instinct_on=inst_on)
             # Obser reward and next obs
+
             obs, reward, done, infos = envs.step(final_action)
-            envs.render()
+            #envs.render()
             episode_step_counter += 1
 
             # Count the cost
@@ -206,7 +208,7 @@ def inner_loop_ppo(
 
             training_episode_cum_reward += total_reward
             if done[0]:
-                print(f"training episode reward {training_episode_cum_reward}")
+                print(f"{training_episode_cum_reward[0][0]},")
                 training_episode_cum_reward = 0
             # If done then clean the history of observations.
             masks = torch.FloatTensor(
@@ -255,12 +257,15 @@ if __name__ == "__main__":
     )
     print("start the train function")
     #parameters = torch.load(
-    #    "/Users/djrg/code/instincts/modular_rl_safety_gym/trained_models/pulled_from_server/es_testing/x_spread_2_goal/uniform_samples_fixed_angle_0b3a2f1a1f_0/saved_weights_gen_143.dat")
+    #    "/Users/djrg/code/instincts/modular_rl_safety_gym/trained_models/pulled_from_server/es_testing/x_spread_2_goal/9736443fff_0/saved_weights_gen_460.dat")
+    #parameters = torch.load(
+    #    "/Users/djrg/code/instincts/modular_rl_safety_gym/trained_models/pulled_from_server/es_testing/ce46f3e92f_0/saved_weights_gen_227.dat"
+    #)
     # args.lr = 0.001 #parameters[-1][0]
     ##print(f"learning rate {args.lr}")
-    print(args.init_sigma)
-    args.init_sigma = 0.7
-    args.lr = 0.005
+    #print(args.init_sigma)
+    args.init_sigma = 0.3
+    #args.lr = 0.005
     blueprint_model = init_ppo(envs, log(args.init_sigma))
     parameters = get_model_weights(blueprint_model)
     parameters.append(np.array([args.lr]))
@@ -271,7 +276,7 @@ if __name__ == "__main__":
         parameters,
         args,
         args.lr,
-        num_steps=4000,
+        num_steps=40000,
         num_updates=1,
         run_idx=CURRENT_GOAL,
         inst_on=False,
