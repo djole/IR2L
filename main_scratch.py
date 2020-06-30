@@ -35,7 +35,7 @@ GLP = GOAL_LOC_PARAM
 # GOALS = [(-GLP, -GLP), (GLP, GLP), (GLP, -GLP), (-GLP, GLP)]
 GOALS = [np.array([-GLP, GLP]), np.array([GLP, GLP])]  # , np.array([1.8, 1.0]), np.array([-GLP, GLP])]
 CURRENT_GOAL = 0
-config = {'num_steps': 200,
+config = {'num_steps': 20,
           'observe_goal_lidar': False,
           'observe_box_lidar': False,
           'observe_qpos': True,
@@ -43,7 +43,7 @@ config = {'num_steps': 200,
           'goal_locations': [(-GLP, -GLP)],
           'robot_keepout': 1.0,
           'robot_locations': [(0, 0)],
-          #'robot_rot': 0.5 * 3.1415,
+          # 'robot_rot': 0.5 * 3.1415,
           'lidar_max_dist': 5,
           'task': 'goal',
           'goal_size': 0.1,
@@ -59,7 +59,7 @@ config = {'num_steps': 200,
           'lidar_num_bins': 8,
           'placements_extents': [-2, -2, 2, 2],
           '_seed': 1,
-          'frameskip_binom_n': 10,
+          'frameskip_binom_n': 100,
           }
 
 # register(id='SafexpCustomEnvironment-v0',
@@ -153,7 +153,7 @@ def inner_loop_ppo(
     envs = make_vec_envs(env_name, np.random.randint(2 ** 32), NUM_PROC,
                          args.gamma, None, device, allow_early_resets=True, normalize=args.norm_vectors)
 
-    #print(envs.venv.spec._kwargs['config']['goal_locations'])
+    # print(envs.venv.spec._kwargs['config']['goal_locations'])
 
     actor_critic = init_ppo(envs, log(args.init_sigma))
     actor_critic.to(device)
@@ -196,7 +196,7 @@ def inner_loop_ppo(
             # Obser reward and next obs
 
             obs, reward, done, infos = envs.step(final_action)
-            #envs.render()
+            # envs.render()
             episode_step_counter += 1
 
             # Count the cost
@@ -208,7 +208,7 @@ def inner_loop_ppo(
 
             training_episode_cum_reward += total_reward
             if done[0]:
-                print(f"{training_episode_cum_reward[0][0]},")
+                # print(f"{training_episode_cum_reward[0][0]},")
                 training_episode_cum_reward = 0
             # If done then clean the history of observations.
             masks = torch.FloatTensor(
@@ -236,12 +236,13 @@ def inner_loop_ppo(
             ob_rms = ob_rms.ob_rms
 
         print("Evaluation!")
-        for i in range(100):
-            #envs = make_vec_envs(env_name, np.random.randint(2 ** 32), NUM_PROC,
-            #                     args.gamma, None, device, allow_early_resets=True, normalize=args.norm_vectors)
-            fits, info = evaluate(actor_critic, ob_rms, envs, NUM_PROC, device, instinct_on=inst_on,
-                                  visualise=visualize)
-            print(f"Fitness {fits[-1]}")
+        # for i in range(100):
+        # envs = make_vec_envs(env_name, np.random.randint(2 ** 32), NUM_PROC,
+        #                     args.gamma, None, device, allow_early_resets=True, normalize=args.norm_vectors)
+        visualize = False # j % 10 == 0
+        fits, info = evaluate(actor_critic, ob_rms, envs, NUM_PROC, device, instinct_on=inst_on,
+                              visualise=visualize)
+        print(f"Fitness {fits[-1]}")
         fitnesses.append(fits)
         # torch.save(actor_critic, "model_rl.pt")
     return (fitnesses[-1]), 0, 0
@@ -256,16 +257,16 @@ if __name__ == "__main__":
         env_name, args.seed, 1, args.gamma, None, torch.device("cpu"), False
     )
     print("start the train function")
-    #parameters = torch.load(
+    # parameters = torch.load(
     #    "/Users/djrg/code/instincts/modular_rl_safety_gym/trained_models/pulled_from_server/es_testing/x_spread_2_goal/9736443fff_0/saved_weights_gen_460.dat")
-    #parameters = torch.load(
+    # parameters = torch.load(
     #    "/Users/djrg/code/instincts/modular_rl_safety_gym/trained_models/pulled_from_server/es_testing/ce46f3e92f_0/saved_weights_gen_227.dat"
-    #)
+    # )
     # args.lr = 0.001 #parameters[-1][0]
     ##print(f"learning rate {args.lr}")
-    #print(args.init_sigma)
+    # print(args.init_sigma)
     args.init_sigma = 0.3
-    #args.lr = 0.005
+    args.lr = 0.001
     blueprint_model = init_ppo(envs, log(args.init_sigma))
     parameters = get_model_weights(blueprint_model)
     parameters.append(np.array([args.lr]))
@@ -276,9 +277,9 @@ if __name__ == "__main__":
         parameters,
         args,
         args.lr,
-        num_steps=40000,
-        num_updates=1,
+        num_steps=4000,
+        num_updates=100,
         run_idx=CURRENT_GOAL,
         inst_on=False,
-        visualize=True
+        visualize=False
     )
