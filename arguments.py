@@ -67,7 +67,7 @@ def get_args():
         help="discount factor (default: 0.99)",
     )
     parser.add_argument(
-        "--lr", type=float, default=0.005, help="learning rate (default: 0.005)"
+        "--lr", type=float, default=0.001, help="learning rate (default: 0.001)"
     )
     parser.add_argument("--ep-training", action="store_true", default=False)
 
