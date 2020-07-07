@@ -16,7 +16,7 @@ GOAL_LOC_PARAM = 1.8
 GLP = GOAL_LOC_PARAM
 #GOALS = [np.array([-GLP, -GLP]), np.array([GLP, GLP]), np.array([GLP, -GLP]), np.array([-GLP, GLP])]
 GOALS = [np.array([-GLP, GLP]), np.array([GLP, GLP])]
-CONFIG_TEMPLATE = {'num_steps': 20,
+CONFIG_TEMPLATE = {'num_steps': 40,
                    'observe_goal_lidar': False,
                    'observe_box_lidar': False,
                    'observe_qpos': True,
@@ -40,7 +40,7 @@ CONFIG_TEMPLATE = {'num_steps': 20,
                    'lidar_num_bins': 8,
                    'placements_extents': [-2, -2, 2, 2],
                    '_seed': 1,
-                   'frameskip_binom_n': 100,
+                   'frameskip_binom_n': 50,
                    }
 
 # register(id='SafexpCustomEnvironment-v0',
