@@ -43,7 +43,7 @@ config = {'num_steps': 20,
           'goal_locations': [(-GLP, -GLP)],
           'robot_keepout': 1.0,
           'robot_locations': [(0, 0)],
-          # 'robot_rot': 0.5 * 3.1415,
+          'robot_rot': 0.5 * 3.1415,
           'lidar_max_dist': 5,
           'task': 'goal',
           'goal_size': 0.1,
@@ -59,7 +59,7 @@ config = {'num_steps': 20,
           'lidar_num_bins': 8,
           'placements_extents': [-2, -2, 2, 2],
           '_seed': 1,
-          'frameskip_binom_n': 100,
+          'frameskip_binom_n': 200,
           }
 
 # register(id='SafexpCustomEnvironment-v0',
@@ -196,7 +196,7 @@ def inner_loop_ppo(
             # Obser reward and next obs
 
             obs, reward, done, infos = envs.step(final_action)
-            # envs.render()
+            envs.render()
             episode_step_counter += 1
 
             # Count the cost
@@ -236,6 +236,7 @@ def inner_loop_ppo(
             ob_rms = ob_rms.ob_rms
 
         print("Evaluation!")
+        return
         # for i in range(100):
         # envs = make_vec_envs(env_name, np.random.randint(2 ** 32), NUM_PROC,
         #                     args.gamma, None, device, allow_early_resets=True, normalize=args.norm_vectors)
