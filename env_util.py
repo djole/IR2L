@@ -12,7 +12,7 @@ from a2c_ppo_acktr.envs import make_vec_envs
 HAZARD_LOC_PARAM = 1
 HLP = HAZARD_LOC_PARAM
 
-GOAL_LOC_PARAM = 1.8
+GOAL_LOC_PARAM = 0.8
 GLP = GOAL_LOC_PARAM
 GOALS = [np.array([-GLP, -GLP]), np.array([GLP, GLP]), np.array([GLP, -GLP]), np.array([-GLP, GLP])]
 #GOALS = [np.array([-GLP, GLP]), np.array([GLP, GLP])]
@@ -22,7 +22,7 @@ CONFIG_TEMPLATE = {'num_steps': 20,
                    'observe_qpos': True,
                    'observe_hazards': False,
                    'goal_locations': [(-GLP, -GLP)],
-                   'robot_keepout': 1.0,
+                   'robot_keepout': 0.3,
                    'robot_locations': [(0, 0)],
                    'robot_rot': 0.5 * 3.1415,
                    'lidar_max_dist': 5,
@@ -40,7 +40,7 @@ CONFIG_TEMPLATE = {'num_steps': 20,
                    'lidar_num_bins': 8,
                    'placements_extents': [-2, -2, 2, 2],
                    '_seed': 1,
-                   'frameskip_binom_n': 100,
+                   'frameskip_binom_n': 50,
                    }
 
 # register(id='SafexpCustomEnvironment-v0',

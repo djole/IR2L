@@ -30,37 +30,37 @@ NP_RANDOM, _ = seeding.np_random(None)
 HAZARD_LOC_PARAM = 1
 HLP = HAZARD_LOC_PARAM
 
-GOAL_LOC_PARAM = 1.8
+GOAL_LOC_PARAM = 0.8
 GLP = GOAL_LOC_PARAM
 # GOALS = [(-GLP, -GLP), (GLP, GLP), (GLP, -GLP), (-GLP, GLP)]
 GOALS = [np.array([-GLP, GLP]), np.array([GLP, GLP])]  # , np.array([1.8, 1.0]), np.array([-GLP, GLP])]
 CURRENT_GOAL = 0
-config = {'num_steps': 20,
-          'observe_goal_lidar': False,
-          'observe_box_lidar': False,
-          'observe_qpos': True,
-          'observe_hazards': False,
-          'goal_locations': [(-GLP, -GLP)],
-          'robot_keepout': 1.0,
-          'robot_locations': [(0, 0)],
-          'robot_rot': 0.5 * 3.1415,
-          'lidar_max_dist': 5,
-          'task': 'goal',
-          'goal_size': 0.1,
-          'goal_keepout': 0.305,
-          'hazards_size': 0.4,
-          'hazards_keepout': 0.18,
-          'hazards_num': 0,
-          'hazards_cost': 0.0,
-          'hazards_locations': [(-HLP, -HLP), (HLP, HLP), (HLP, -HLP), (-HLP, HLP)],
-          'constrain_hazards': False,
-          'robot_base': 'xmls/point.xml',
-          'sensors_obs': ['magnetometer'],  # ['accelerometer', 'velocimeter', 'gyro', 'magnetometer'],
-          'lidar_num_bins': 8,
-          'placements_extents': [-2, -2, 2, 2],
-          '_seed': 1,
-          'frameskip_binom_n': 200,
-          }
+config = CONFIG_TEMPLATE = {'num_steps': 20,
+                   'observe_goal_lidar': False,
+                   'observe_box_lidar': False,
+                   'observe_qpos': True,
+                   'observe_hazards': False,
+                   'goal_locations': [(-GLP, -GLP)],
+                   'robot_keepout': 0.3,
+                   'robot_locations': [(0, 0)],
+                   'robot_rot': 0.5 * 3.1415,
+                   'lidar_max_dist': 5,
+                   'task': 'goal',
+                   'goal_size': 0.1,
+                   'goal_keepout': 0.305,
+                   'hazards_size': 0.4,
+                   'hazards_keepout': 0.18,
+                   'hazards_num': 0,
+                   'hazards_cost': 0.0,
+                   'hazards_locations': [(-HLP, -HLP), (HLP, HLP), (HLP, -HLP), (-HLP, HLP)],
+                   'constrain_hazards': False,
+                   'robot_base': 'xmls/point.xml',
+                   'sensors_obs': ['magnetometer'],  # ['accelerometer', 'velocimeter', 'gyro', 'magnetometer'],
+                   'lidar_num_bins': 8,
+                   'placements_extents': [-2, -2, 2, 2],
+                   '_seed': 1,
+                   'frameskip_binom_n': 50,
+                   }
 
 # register(id='SafexpCustomEnvironment-v0',
 #         entry_point='safety_gym.envs.mujoco:Engine',
@@ -266,7 +266,7 @@ if __name__ == "__main__":
     # args.lr = 0.001 #parameters[-1][0]
     ##print(f"learning rate {args.lr}")
     # print(args.init_sigma)
-    args.init_sigma = 0.3
+    args.init_sigma = 0.6
     args.lr = 0.001
     blueprint_model = init_ppo(envs, log(args.init_sigma))
     parameters = get_model_weights(blueprint_model)
