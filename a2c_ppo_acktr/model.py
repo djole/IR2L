@@ -79,6 +79,7 @@ class PolicyWithInstinct(nn.Module):
     def evaluate_actions(self, inputs, rnn_hxs, masks, action):
         return self.policy.evaluate_actions(inputs, rnn_hxs, masks, action)
 
+
 class Policy(nn.Module):
     def __init__(self, obs_shape, action_space, init_log_std, base=None, base_kwargs=None):
         super(Policy, self).__init__()
@@ -295,6 +296,7 @@ class MLPBase(NNBase):
 
         return self.critic_linear(hidden_critic), hidden_actor, rnn_hxs
 
+
 def init_ppo(env, init_log_std):
     actor_critic = PolicyWithInstinct(
         env.observation_space.shape,
@@ -303,6 +305,7 @@ def init_ppo(env, init_log_std):
         base_kwargs={'recurrent': False},
         )
     return actor_critic
+
 
 def init_default_ppo(env, init_log_std):
     actor_critic = Policy(env.observation_space.shape,
