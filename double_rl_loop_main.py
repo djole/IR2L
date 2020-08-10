@@ -220,7 +220,7 @@ def main():
         args,
         args.lr,
         num_steps=10000,
-        num_updates=100,
+        num_updates=1000,
         inst_on=False,
         visualize=False
     )
