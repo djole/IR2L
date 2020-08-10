@@ -201,7 +201,7 @@ def inner_loop_ppo(
 
         fits, info = evaluate(actor_critic, ob_rms, envs, NUM_PROC, device, instinct_on=inst_on,
                               visualise=visualize)
-        print(f"Fitness {fits[-1]}")
+        print(f"Fitness {fits[-1]}, value_loss = {value_loss}, action_loss = {action_loss}, dist_entropy = {dist_entropy}")
         fitnesses.append(fits)
         # torch.save(actor_critic, "model_rl.pt")
     return (fitnesses[-1]), 0, 0
