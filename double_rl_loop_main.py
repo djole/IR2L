@@ -156,7 +156,7 @@ def inner_loop_ppo(
                 instinct_output_package
             # Observe reward and next obs
             obs, reward, done, infos = envs.step(final_action)
-            envs.render()
+            #envs.render()
 
             # Count the cost
 
