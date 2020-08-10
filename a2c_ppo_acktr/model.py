@@ -8,10 +8,11 @@ import torch.nn.functional as F
 from a2c_ppo_acktr.distributions import Bernoulli, Categorical, DiagGaussian
 from a2c_ppo_acktr.utils import init
 from model import ControllerInstinct, weight_init
+from copy import deepcopy
 
 
 def custom_weight_init(module):
-    stdv = 0.3 #1. / math.sqrt(module.weight.size(1))
+    stdv = 0.3  # 1. / math.sqrt(module.weight.size(1))
     if isinstance(module, nn.Linear):
         module.weight.data.uniform_(-stdv, stdv)
         module.bias.data.uniform_(-stdv, stdv)
@@ -26,7 +27,10 @@ class PolicyWithInstinct(nn.Module):
     def __init__(self, obs_shape, action_space, init_log_std, base=None, base_kwargs=None, load_instinct=False):
         super(PolicyWithInstinct, self).__init__()
         self.policy = Policy(obs_shape, action_space, init_log_std, base, base_kwargs)
-        self.instinct = ControllerInstinct(obs_shape[0], 100, action_space.shape[0])
+        instinct_input_shape = (obs_shape[0] + action_space.shape[0],)  # Add policy output to instinct input
+        instinct_action_space = deepcopy(action_space)
+        instinct_action_space.shape = (action_space.shape[0] * 2,)
+        self.instinct = Policy(instinct_input_shape, instinct_action_space, init_log_std, base, base_kwargs)
 
         self.freeze_instinct = load_instinct
         self.apply(custom_weight_init)
@@ -38,7 +42,6 @@ class PolicyWithInstinct(nn.Module):
     @property
     def recurrent_hidden_state_size(self):
         return self.policy.base.recurrent_hidden_state_size
-
 
     def forward(self, inputs, rnn_hxs, masks):
         raise NotImplementedError
@@ -57,21 +60,30 @@ class PolicyWithInstinct(nn.Module):
     def parameters(self):
         return self.policy.parameters()
 
-    def act(self, inputs, rnn_hxs, masks, deterministic=False, instinct_on=False):
+    def act(self, inputs, rnn_hxs, i_rnn_hxs, masks, i_masks, deterministic=False, instinct_deterministic=False,
+            instinct_on=False):
         instinct_on = False
         value, action, action_log_probs, rnn_hxs = self.policy.act(inputs, rnn_hxs, masks, deterministic)
-        instinct_action, control = self.instinct(inputs)
+        instinct_inputs = torch.cat([inputs, action], dim=1)
+        instinct_value, instinct_outputs, instinct_outputs_log_prob, i_rnn_hxs = \
+            self.instinct.act(instinct_inputs, i_rnn_hxs, i_masks, instinct_deterministic)
 
-        controlled_stoch_action = action * control
-        controlled_instinct_action = instinct_action * (1 - control)
+        half_output = int(instinct_outputs.shape[1] / 2)
+        instinct_action = instinct_outputs[:, :half_output]
+        instinct_control = instinct_outputs[:, half_output:]
+
+        controlled_stoch_action = action * instinct_control
+        controlled_instinct_action = instinct_action * (1 - instinct_control)
 
         if instinct_on:
             final_action = controlled_stoch_action + controlled_instinct_action
-            assert False, "instinct should be off!"
+            assert False, "instinct is off / TESTING"
         else:
             final_action = action
 
-        return value, action, action_log_probs, rnn_hxs, (final_action, control.mean().item())
+        return (value, action, action_log_probs, rnn_hxs), \
+               (instinct_value, instinct_outputs, instinct_outputs_log_prob, i_rnn_hxs, instinct_inputs), \
+               final_action
 
     def get_value(self, inputs, rnn_hxs, masks):
         return self.policy.get_value(inputs, rnn_hxs, masks)
@@ -195,10 +207,10 @@ class NNBase(nn.Module):
             # Let's figure out which steps in the sequence have a zero for any agent
             # We will always assume t=0 has a zero in it as that makes the logic cleaner
             has_zeros = ((masks[1:] == 0.0) \
-                            .any(dim=-1)
-                            .nonzero()
-                            .squeeze()
-                            .cpu())
+                         .any(dim=-1)
+                         .nonzero()
+                         .squeeze()
+                         .cpu())
 
             # +1 to correct the masks[1:]
             if has_zeros.dim() == 0:
@@ -270,7 +282,7 @@ class MLPBase(NNBase):
         if recurrent:
             num_inputs = hidden_size
 
-        #init_ = lambda m: init(m, nn.init.orthogonal_, lambda x: nn.init.
+        # init_ = lambda m: init(m, nn.init.orthogonal_, lambda x: nn.init.
         #                       constant_(x, 0), np.sqrt(2))
 
         self.actor = nn.Sequential(
@@ -303,7 +315,7 @@ def init_ppo(env, init_log_std):
         env.action_space,
         init_log_std=init_log_std,
         base_kwargs={'recurrent': False},
-        )
+    )
     return actor_critic
 
 

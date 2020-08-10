@@ -19,6 +19,8 @@ def evaluate(actor_critic, ob_rms, eval_envs, num_processes,
     obs = eval_envs.reset()
     eval_recurrent_hidden_states = torch.zeros(
         num_processes, actor_critic.recurrent_hidden_state_size, device=device)
+    eval_recurrent_hidden_states_instincts = torch.zeros(
+        num_processes, actor_critic.recurrent_hidden_state_size, device=device)
     eval_masks = torch.zeros(num_processes, 1, device=device)
 
     done = False
@@ -27,11 +29,12 @@ def evaluate(actor_critic, ob_rms, eval_envs, num_processes,
     cost = 0
     while not done:
         with torch.no_grad():
-            _, action, _, eval_recurrent_hidden_states, (final_action, _) = actor_critic.act(
+            _, _, final_action = actor_critic.act(
                 obs,
-                eval_recurrent_hidden_states,
-                eval_masks,
+                eval_recurrent_hidden_states, eval_recurrent_hidden_states_instincts,
+                eval_masks, eval_masks,
                 deterministic=True,
+                instinct_deterministic=True,
                 instinct_on=instinct_on,
             )
 
