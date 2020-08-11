@@ -78,7 +78,7 @@ def inner_loop_ppo(
     torch.set_num_threads(1)
     device = torch.device("cpu")
 
-    env_name = "Safexp-PointGoal1-v0"
+    env_name = "Safexp-PointGoal0-v0"
     envs = make_vec_envs(env_name, np.random.randint(2 ** 32), NUM_PROC,
                          args.gamma, None, device, allow_early_resets=True, normalize=args.norm_vectors)
 
@@ -179,7 +179,7 @@ def inner_loop_ppo(
             rollouts_rewards.insert(obs, recurrent_hidden_states, action,
                                     action_log_probs, value, reward, masks, bad_masks)
             rollouts_cost.insert(i_obs, instinct_recurrent_hidden_states, instinct_action, instinct_outputs_log_prob,
-                                 instinct_value, violation_cost, masks, bad_masks)
+                                 instinct_value, reward, masks, bad_masks)
 
         with torch.no_grad():
             next_value = actor_critic.get_value(
