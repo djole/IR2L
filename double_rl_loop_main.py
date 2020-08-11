@@ -39,8 +39,6 @@ HLP = HAZARD_LOC_PARAM
 #         entry_point='safety_gym.envs.mujoco:Engine',
 #         kwargs={'config': config})
 
-CUSTOM_ENV = 'SafexpCustomEnvironment-v0'
-ENV_NAME = CUSTOM_ENV
 NUM_PROC = 1
 
 
@@ -80,7 +78,7 @@ def inner_loop_ppo(
     torch.set_num_threads(1)
     device = torch.device("cpu")
 
-    env_name = "Safexp-PointGoal0-v0"
+    env_name = "Safexp-PointGoal1-v0"
     envs = make_vec_envs(env_name, np.random.randint(2 ** 32), NUM_PROC,
                          args.gamma, None, device, allow_early_resets=True, normalize=args.norm_vectors)
 
@@ -138,6 +136,8 @@ def inner_loop_ppo(
     training_episode_cum_reward = 0
     training_episode_cum_cost = 0
 
+    best_fitness_so_far = float("-Inf")
+
     for j in range(num_updates):
 
         for step in range(num_steps):
@@ -156,7 +156,7 @@ def inner_loop_ppo(
                 instinct_output_package
             # Observe reward and next obs
             obs, reward, done, infos = envs.step(final_action)
-            #envs.render()
+            # envs.render()
 
             # Count the cost
 
@@ -189,7 +189,7 @@ def inner_loop_ppo(
         rollouts_rewards.compute_returns(next_value, args.use_gae, args.gamma,
                                          args.gae_lambda, args.use_proper_time_limits)
 
-        value_loss, action_loss, dist_entropy = agent_policy.update(rollouts_rewards)
+        # value_loss, action_loss, dist_entropy = agent_policy.update(rollouts_rewards)
         val_loss_i, action_loss_i, dist_entropy_i = agent_instinct.update(rollouts_cost)
 
         rollouts_rewards.after_update()
@@ -201,9 +201,15 @@ def inner_loop_ppo(
 
         fits, info = evaluate(actor_critic, ob_rms, envs, NUM_PROC, device, instinct_on=inst_on,
                               visualise=visualize)
-        print(f"Fitness {fits[-1]}, value_loss = {value_loss}, action_loss = {action_loss}, dist_entropy = {dist_entropy}")
+        eval_cost = info['cost']
+        # print(f"Fitness {fits.item()}, cost = {eval_cost}, value_loss = {value_loss}, action_loss = {action_loss}, "
+        #      f"dist_entropy = {dist_entropy}")
+        print(f"Fitness {fits.item()}, cost = {eval_cost}, value_loss = {val_loss_i}, action_loss = {action_loss_i}, "
+              f"dist_entropy = {dist_entropy_i}")
         fitnesses.append(fits)
-        # torch.save(actor_critic, "model_rl.pt")
+        if fits.item() > best_fitness_so_far:
+            best_fitness_so_far = fits.item()
+            torch.save(actor_critic, "model_rl.pt")
     return (fitnesses[-1]), 0, 0
 
 
@@ -216,7 +222,7 @@ def main():
 
     # plot_weight_histogram(parameters)
 
-    fitness = inner_loop_ppo(
+    inner_loop_ppo(
         args,
         args.lr,
         num_steps=10000,

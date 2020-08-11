@@ -8,7 +8,6 @@ from a2c_ppo_acktr.envs import make_vec_envs
 def evaluate(actor_critic, ob_rms, eval_envs, num_processes,
              device, instinct_on=True, visualise=False):
 
-
     vec_norm = utils.get_vec_normalize(eval_envs)
     if vec_norm is not None:
         vec_norm.eval()
@@ -42,7 +41,7 @@ def evaluate(actor_critic, ob_rms, eval_envs, num_processes,
         obs, reward, done, infos = eval_envs.step(final_action)
         total_reward = reward
         for info in infos:
-            total_reward -= info['cost']
+            # total_reward -= info['cost']
             cost += info['cost']
 
         if visualise:
