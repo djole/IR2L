@@ -73,7 +73,7 @@ class PolicyWithInstinct(nn.Module):
         instinct_control = instinct_outputs[:, half_output:]
 
         controlled_stoch_action = action * instinct_control
-        controlled_instinct_action = instinct_action * (1 - instinct_control)
+        controlled_instinct_action = instinct_action  # * (1 - instinct_control)
 
         if instinct_on:
             final_action = controlled_instinct_action  # + control_stoch_action # TODO return this after debugging
