@@ -69,8 +69,11 @@ class PolicyWithInstinct(nn.Module):
             self.instinct.act(instinct_inputs, i_rnn_hxs, i_masks, instinct_deterministic)
 
         half_output = int(instinct_outputs.shape[1] / 2)
-        instinct_action = instinct_outputs[:, :half_output]
-        instinct_control = instinct_outputs[:, half_output:]
+        instinct_action = instinct_outputs[:, half_output:]
+        instinct_control = instinct_outputs[:, :half_output]
+        # TODO Remove
+        instinct_outputs[:, :half_output] = instinct_outputs[:, :half_output] * 0.0
+
 
         controlled_stoch_action = action * instinct_control
         controlled_instinct_action = instinct_action  # * (1 - instinct_control)

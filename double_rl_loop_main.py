@@ -180,6 +180,7 @@ def inner_loop_ppo(
                                     action_log_probs, value, reward, masks, bad_masks)
             rollouts_cost.insert(i_obs, instinct_recurrent_hidden_states, instinct_action, instinct_outputs_log_prob,
                                  instinct_value, reward, masks, bad_masks)
+            print(f"instinct action {instinct_action}, final action {final_action}")
 
         with torch.no_grad():
             next_value = actor_critic.get_value(
