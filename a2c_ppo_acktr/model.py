@@ -29,7 +29,7 @@ class PolicyWithInstinct(nn.Module):
         self.policy = Policy(obs_shape, action_space, init_log_std, base, base_kwargs)
         instinct_input_shape = (obs_shape[0] + action_space.shape[0],)  # Add policy output to instinct input
         instinct_action_space = deepcopy(action_space)
-        instinct_action_space.shape = (action_space.shape[0] * 2,)
+        instinct_action_space.shape = (action_space.shape[0],)
         self.instinct = Policy(instinct_input_shape, instinct_action_space, init_log_std, base, base_kwargs)
 
         self.freeze_instinct = load_instinct
@@ -69,13 +69,13 @@ class PolicyWithInstinct(nn.Module):
             self.instinct.act(instinct_inputs, i_rnn_hxs, i_masks, instinct_deterministic)
 
         half_output = int(instinct_outputs.shape[1] / 2)
-        instinct_action = instinct_outputs[:, half_output:]
-        instinct_control = instinct_outputs[:, :half_output]
+        instinct_action = instinct_outputs #[:, half_output:]
+        # instinct_control = instinct_outputs[:, :half_output]
         # TODO Remove
-        instinct_outputs[:, :half_output] = instinct_outputs[:, :half_output] * 0.0
+        # instinct_outputs[:, :half_output] = instinct_outputs[:, :half_output] * 0.0
 
 
-        controlled_stoch_action = action * instinct_control
+        # controlled_stoch_action = action * instinct_control
         controlled_instinct_action = instinct_action  # * (1 - instinct_control)
 
         if instinct_on:

@@ -82,6 +82,7 @@ def inner_loop_ppo(
     envs = make_vec_envs(env_name, np.random.randint(2 ** 32), NUM_PROC,
                          args.gamma, None, device, allow_early_resets=True, normalize=args.norm_vectors)
 
+    # actor_critic = torch.load("/Users/djrg/code/instincts/modular_rl_safety_gym/model_rl.pt")  # init_ppo(envs, log(args.init_sigma))
     actor_critic = init_ppo(envs, log(args.init_sigma))
     actor_critic.to(device)
     actor_critic_policy = actor_critic.policy
@@ -119,7 +120,7 @@ def inner_loop_ppo(
 
     instinct_observation_space_shape = (envs.observation_space.shape[0] + envs.action_space.shape[0],)
     instinct_action_space = deepcopy(envs.action_space)
-    instinct_action_space.shape = (envs.action_space.shape[0] * 2,)
+    instinct_action_space.shape = (envs.action_space.shape[0],)
     rollouts_cost = RolloutStorage(num_steps, NUM_PROC,
                                    instinct_observation_space_shape, instinct_action_space,
                                    actor_critic.recurrent_hidden_state_size)
