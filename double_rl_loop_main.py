@@ -42,6 +42,8 @@ HLP = HAZARD_LOC_PARAM
 
 NUM_PROC = 1
 
+TEST_INSTINCT = False
+
 
 def plot_weight_histogram(parameters):
     flattened_params = []
@@ -53,19 +55,19 @@ def plot_weight_histogram(parameters):
     plt.show()
 
 
-def apply_from_list(weights, model: PolicyWithInstinct):
-    to_params_dct = model.get_evolvable_params()
-
-    for ptensor, w in zip(to_params_dct, weights):
-        w_tensor = torch.Tensor(w)
-        ptensor.data.copy_(w_tensor)
-
-
-def initialize_model(envs, init_sigma, learning_rate):
-    blueprint_model = init_ppo(envs, log(init_sigma))
-    parameters = get_model_weights(blueprint_model)
-    parameters.append(np.array([learning_rate]))
-    return parameters
+# def apply_from_list(weights, model: PolicyWithInstinct):
+#    to_params_dct = model.get_evolvable_params()
+#
+#    for ptensor, w in zip(to_params_dct, weights):
+#        w_tensor = torch.Tensor(w)
+#        ptensor.data.copy_(w_tensor)
+#
+#
+# def initialize_model(envs, init_sigma, learning_rate):
+#    blueprint_model = init_ppo(envs, log(init_sigma))
+#    parameters = get_model_weights(blueprint_model)
+#    parameters.append(np.array([learning_rate]))
+#    return parameters
 
 
 def inner_loop_ppo(
@@ -85,14 +87,14 @@ def inner_loop_ppo(
                          args.gamma, None, device, allow_early_resets=True, normalize=args.norm_vectors)
 
     # actor_critic = torch.load("/Users/djrg/code/instincts/modular_rl_safety_gym/model_rl.pt")  # init_ppo(envs, log(args.init_sigma))
-    actor_critic = init_ppo(envs, log(args.init_sigma))
-    actor_critic.to(device)
-    actor_critic_policy = actor_critic.policy
-    actor_critic_instinct = actor_critic.instinct
+    actor_critic_policy = init_default_ppo(envs, log(args.init_sigma))
+    actor_critic_instinct = init_default_ppo(envs, log(args.init_sigma))
+    actor_critic_policy.to(device)
+    actor_critic_instinct.to(device)
 
     # apply the weights to the model
-    weights = initialize_model(envs, args.init_sigma, args.lr)
-    apply_from_list(weights, actor_critic)
+    # weights = initialize_model(envs, args.init_sigma, args.lr)
+    # apply_from_list(weights, actor_critic)
 
     agent_policy = algo.PPO(
         actor_critic_policy,
@@ -118,21 +120,21 @@ def inner_loop_ppo(
 
     rollouts_rewards = RolloutStorage(num_steps, NUM_PROC,
                                       envs.observation_space.shape, envs.action_space,
-                                      actor_critic.recurrent_hidden_state_size)
+                                      actor_critic_policy.recurrent_hidden_state_size)
 
-    instinct_observation_space_shape = (envs.observation_space.shape[0] + envs.action_space.shape[0],)
+    instinct_observation_space_shape = (envs.observation_space.shape[0],)
     instinct_action_space = deepcopy(envs.action_space)
     instinct_action_space.shape = (envs.action_space.shape[0],)
     rollouts_cost = RolloutStorage(num_steps, NUM_PROC,
                                    instinct_observation_space_shape, instinct_action_space,
-                                   actor_critic.recurrent_hidden_state_size)
+                                   actor_critic_instinct.recurrent_hidden_state_size)
 
     obs = envs.reset()
-    i_obs = torch.cat([obs, torch.zeros((NUM_PROC, envs.action_space.shape[0]))],
-                      dim=1)  # Add zero action to the observation
+    # i_obs = torch.cat([obs, torch.zeros((NUM_PROC, envs.action_space.shape[0]))],
+    #                  dim=1)  # Add zero action to the observation
     rollouts_rewards.obs[0].copy_(obs)
     rollouts_rewards.to(device)
-    rollouts_cost.obs[0].copy_(i_obs)
+    rollouts_cost.obs[0].copy_(obs)
     rollouts_cost.to(device)
 
     fitnesses = []
@@ -148,18 +150,23 @@ def inner_loop_ppo(
             # Sample actions
             with torch.no_grad():
                 # (value, action, action_log_probs, rnn_hxs), (instinct_value, instinct_action, instinct_outputs_log_prob, i_rnn_hxs), final_action
-                policy_output_package, instinct_output_package, final_action = actor_critic.act(
+                value, action, action_log_probs, recurrent_hidden_states = actor_critic_policy.act(
                     rollouts_rewards.obs[step],
-                    rollouts_rewards.recurrent_hidden_states[step], rollouts_cost.recurrent_hidden_states[step],
-                    rollouts_rewards.masks[step], rollouts_cost.masks[step],
-                    instinct_on=inst_on)
+                    rollouts_rewards.recurrent_hidden_states[step],
+                    rollouts_rewards.masks[step],
+                )
+                instinct_value, instinct_action, instinct_outputs_log_prob, instinct_recurrent_hidden_states = actor_critic_instinct.act(
+                    rollouts_cost.obs[step],
+                    rollouts_cost.recurrent_hidden_states[step],
+                    rollouts_cost.masks[step],
+                )
 
             # Unpack data from two streams (policy and instinct)
-            value, action, action_log_probs, recurrent_hidden_states = policy_output_package
-            instinct_value, instinct_action, instinct_outputs_log_prob, instinct_recurrent_hidden_states, i_obs = \
-                instinct_output_package
+            # value, action, action_log_probs, recurrent_hidden_states = policy_output_package
+            # instinct_value, instinct_action, instinct_outputs_log_prob, instinct_recurrent_hidden_states, i_obs = \
+            #    instinct_output_package
             # Observe reward and next obs
-            obs, reward, done, infos = envs.step(final_action)
+            obs, reward, done, infos = envs.step(instinct_action if TEST_INSTINCT else action)
             # envs.render()
 
             # Count the cost
@@ -182,7 +189,7 @@ def inner_loop_ppo(
                  for info in infos])
             rollouts_rewards.insert(obs, recurrent_hidden_states, action,
                                     action_log_probs, value, reward, masks, bad_masks)
-            rollouts_cost.insert(i_obs, instinct_recurrent_hidden_states, instinct_action, instinct_outputs_log_prob,
+            rollouts_cost.insert(obs, instinct_recurrent_hidden_states, instinct_action, instinct_outputs_log_prob,
                                  instinct_value, reward, masks, bad_masks)
 
         with torch.no_grad():
@@ -208,23 +215,18 @@ def inner_loop_ppo(
         if ob_rms is not None:
             ob_rms = ob_rms.ob_rms
 
-        fits, info = evaluate(actor_critic, ob_rms, envs, NUM_PROC, device, instinct_on=inst_on,
-                              visualise=visualize)
+        if not TEST_INSTINCT:
+            fits, info = evaluate(actor_critic_policy, ob_rms, envs, NUM_PROC, device, instinct_on=inst_on,
+                                  visualise=visualize)
+        else:
+            fits, info = evaluate(actor_critic_instinct, ob_rms, envs, NUM_PROC, device, instinct_on=inst_on,
+                                  visualise=visualize)
         eval_cost = info['cost']
-        # print(f"Fitness {fits.item()}, cost = {eval_cost}, value_loss = {value_loss}, action_loss = {action_loss}, "
-        #      f"dist_entropy = {dist_entropy}")
-        # print(f"Step {j}, Fitness {fits.item()}, cost = {eval_cost}, value_loss = {val_loss_i}, action_loss = {action_loss_i}, "
-        #      f"dist_entropy = {dist_entropy_i}")
         print(
             f"Step {j}, Fitness {fits.item()}, cost = {eval_cost}, value_loss = {value_loss}, action_loss = {action_loss}, "
             f"dist_entropy = {dist_entropy}")
 
         # Tensorboard logging
-        # log_writer.add_scalar("fitness", fits.item(), j)
-        # log_writer.add_scalar("value loss", val_loss_i, j)
-        # log_writer.add_scalar("action loss", action_loss_i, j)
-        # log_writer.add_scalar("dist entropy", dist_entropy_i, j)
-
         log_writer.add_scalar("fitness", fits.item(), j)
         log_writer.add_scalar("value loss", value_loss, j)
         log_writer.add_scalar("action loss", action_loss, j)
@@ -233,7 +235,7 @@ def inner_loop_ppo(
         fitnesses.append(fits)
         if fits.item() > best_fitness_so_far:
             best_fitness_so_far = fits.item()
-            torch.save(actor_critic, "model_rl.pt")
+            torch.save(actor_critic_instinct if TEST_INSTINCT else actor_critic_policy, "model_rl.pt")
     return (fitnesses[-1]), 0, 0
 
 
@@ -242,7 +244,7 @@ def main():
     print("start the train function")
 
     args.init_sigma = 0.6
-    args.lr = 0.001
+    args.lr = 0.0001
 
     # plot_weight_histogram(parameters)
 
