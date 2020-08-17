@@ -62,7 +62,7 @@ class PolicyWithInstinct(nn.Module):
 
     def act(self, inputs, rnn_hxs, i_rnn_hxs, masks, i_masks, deterministic=False, instinct_deterministic=False,
             instinct_on=False):
-        instinct_on = True
+        instinct_on = False
         value, action, action_log_probs, rnn_hxs = self.policy.act(inputs, rnn_hxs, masks, deterministic)
         instinct_inputs = torch.cat([inputs, torch.zeros_like(action)], dim=1)  # TODO remove the zeros after debugging
         instinct_value, instinct_outputs, instinct_outputs_log_prob, i_rnn_hxs = \
@@ -80,8 +80,8 @@ class PolicyWithInstinct(nn.Module):
 
         if instinct_on:
             final_action = controlled_instinct_action  # + control_stoch_action # TODO return this after debugging
-        else:
             assert False, "instinct is on / TESTING"
+        else:
             final_action = action
 
         return (value, action, action_log_probs, rnn_hxs), \
@@ -89,9 +89,11 @@ class PolicyWithInstinct(nn.Module):
                final_action
 
     def get_value(self, inputs, rnn_hxs, masks):
+        assert False, "This make no sense at this point"
         return self.policy.get_value(inputs, rnn_hxs, masks)
 
     def evaluate_actions(self, inputs, rnn_hxs, masks, action):
+        assert False, "This make no sense at this point"
         return self.policy.evaluate_actions(inputs, rnn_hxs, masks, action)
 
 

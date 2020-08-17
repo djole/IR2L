@@ -18,6 +18,7 @@ from a2c_ppo_acktr.storage import RolloutStorage
 from arguments import get_args
 from main_es import get_model_weights
 from copy import deepcopy
+from torch.utils.tensorboard import SummaryWriter
 
 # config = {
 #    'robot_base': 'xmls/point.xml',
@@ -76,6 +77,7 @@ def inner_loop_ppo(
         visualize
 ):
     torch.set_num_threads(1)
+    log_writer = SummaryWriter("./log", max_queue=1, filename_suffix="log")
     device = torch.device("cpu")
 
     env_name = "Safexp-PointGoal0-v0"
@@ -126,7 +128,8 @@ def inner_loop_ppo(
                                    actor_critic.recurrent_hidden_state_size)
 
     obs = envs.reset()
-    i_obs = torch.cat([obs, torch.zeros((NUM_PROC, envs.action_space.shape[0]))], dim=1)  # Add zero action to the observation
+    i_obs = torch.cat([obs, torch.zeros((NUM_PROC, envs.action_space.shape[0]))],
+                      dim=1)  # Add zero action to the observation
     rollouts_rewards.obs[0].copy_(obs)
     rollouts_rewards.to(device)
     rollouts_cost.obs[0].copy_(i_obs)
@@ -181,17 +184,21 @@ def inner_loop_ppo(
                                     action_log_probs, value, reward, masks, bad_masks)
             rollouts_cost.insert(i_obs, instinct_recurrent_hidden_states, instinct_action, instinct_outputs_log_prob,
                                  instinct_value, reward, masks, bad_masks)
-            #print(f"instinct action {instinct_action}, final action {final_action}")
 
         with torch.no_grad():
-            next_value = actor_critic.get_value(
+            next_value_policy = actor_critic_policy.get_value(
                 rollouts_rewards.obs[-1], rollouts_rewards.recurrent_hidden_states[-1],
                 rollouts_rewards.masks[-1]).detach()
+            next_value_instinct = actor_critic_instinct.get_value(rollouts_cost.obs[-1],
+                                                                  rollouts_cost.recurrent_hidden_states[-1],
+                                                                  rollouts_cost.masks[-1].detach())
 
-        rollouts_rewards.compute_returns(next_value, args.use_gae, args.gamma,
+        rollouts_rewards.compute_returns(next_value_policy, args.use_gae, args.gamma,
                                          args.gae_lambda, args.use_proper_time_limits)
+        rollouts_cost.compute_returns(next_value_instinct, args.use_gae, args.gamma,
+                                      args.gae_lambda, args.use_proper_time_limits)
 
-        # value_loss, action_loss, dist_entropy = agent_policy.update(rollouts_rewards)
+        value_loss, action_loss, dist_entropy = agent_policy.update(rollouts_rewards)
         val_loss_i, action_loss_i, dist_entropy_i = agent_instinct.update(rollouts_cost)
 
         rollouts_rewards.after_update()
@@ -206,8 +213,23 @@ def inner_loop_ppo(
         eval_cost = info['cost']
         # print(f"Fitness {fits.item()}, cost = {eval_cost}, value_loss = {value_loss}, action_loss = {action_loss}, "
         #      f"dist_entropy = {dist_entropy}")
-        print(f"Fitness {fits.item()}, cost = {eval_cost}, value_loss = {val_loss_i}, action_loss = {action_loss_i}, "
-              f"dist_entropy = {dist_entropy_i}")
+        # print(f"Step {j}, Fitness {fits.item()}, cost = {eval_cost}, value_loss = {val_loss_i}, action_loss = {action_loss_i}, "
+        #      f"dist_entropy = {dist_entropy_i}")
+        print(
+            f"Step {j}, Fitness {fits.item()}, cost = {eval_cost}, value_loss = {value_loss}, action_loss = {action_loss}, "
+            f"dist_entropy = {dist_entropy}")
+
+        # Tensorboard logging
+        # log_writer.add_scalar("fitness", fits.item(), j)
+        # log_writer.add_scalar("value loss", val_loss_i, j)
+        # log_writer.add_scalar("action loss", action_loss_i, j)
+        # log_writer.add_scalar("dist entropy", dist_entropy_i, j)
+
+        log_writer.add_scalar("fitness", fits.item(), j)
+        log_writer.add_scalar("value loss", value_loss, j)
+        log_writer.add_scalar("action loss", action_loss, j)
+        log_writer.add_scalar("dist entropy", dist_entropy, j)
+
         fitnesses.append(fits)
         if fits.item() > best_fitness_so_far:
             best_fitness_so_far = fits.item()
@@ -220,7 +242,7 @@ def main():
     print("start the train function")
 
     args.init_sigma = 0.6
-    args.lr = 0.0001
+    args.lr = 0.001
 
     # plot_weight_histogram(parameters)
 
