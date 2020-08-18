@@ -13,10 +13,9 @@ import matplotlib.pyplot as plt
 from a2c_ppo_acktr import algo, utils
 from a2c_ppo_acktr.envs import make_vec_envs
 from a2c_ppo_acktr.evaluation import evaluate
-from a2c_ppo_acktr.model import init_default_ppo, init_ppo, PolicyWithInstinct
+from a2c_ppo_acktr.model import init_default_ppo, Policy
 from a2c_ppo_acktr.storage import RolloutStorage
 from arguments import get_args
-from main_es import get_model_weights
 from copy import deepcopy
 from torch.utils.tensorboard import SummaryWriter
 
@@ -29,19 +28,7 @@ from torch.utils.tensorboard import SummaryWriter
 # }
 
 NP_RANDOM, _ = seeding.np_random(None)
-HAZARD_LOC_PARAM = 1
-HLP = HAZARD_LOC_PARAM
-
-# GOAL_LOC_PARAM = 0.8
-# GLP = GOAL_LOC_PARAM
-# GOALS = [(-GLP, -GLP), (GLP, GLP), (GLP, -GLP), (-GLP, GLP)]
-
-# register(id='SafexpCustomEnvironment-v0',
-#         entry_point='safety_gym.envs.mujoco:Engine',
-#         kwargs={'config': config})
-
 NUM_PROC = 1
-
 TEST_INSTINCT = False
 
 
@@ -55,19 +42,44 @@ def plot_weight_histogram(parameters):
     plt.show()
 
 
-# def apply_from_list(weights, model: PolicyWithInstinct):
-#    to_params_dct = model.get_evolvable_params()
-#
-#    for ptensor, w in zip(to_params_dct, weights):
-#        w_tensor = torch.Tensor(w)
-#        ptensor.data.copy_(w_tensor)
-#
-#
-# def initialize_model(envs, init_sigma, learning_rate):
-#    blueprint_model = init_ppo(envs, log(init_sigma))
-#    parameters = get_model_weights(blueprint_model)
-#    parameters.append(np.array([learning_rate]))
-#    return parameters
+def policy_instinct_combinator(policy_actions, instinct_outputs):
+    # Split the shape
+    instinct_half_shape = int(instinct_outputs.shape[1] / 2)
+
+    # Test if the shapes work
+    assert instinct_half_shape == policy_actions.shape[0] or len(policy_actions.shape) == len(instinct_outputs.shape), \
+        "Wrong matrices shapes"
+    if len(policy_actions.shape) > 1:
+        assert policy_actions.shape[0] == instinct_outputs.shape[0], "Wrong matrices shapes"
+
+    # Divert the control from action in the instinct
+    instinct_action = instinct_outputs[:, instinct_half_shape:]
+    instinct_control = instinct_outputs[:, :instinct_half_shape]
+
+    # Control the policy and instinct outputs
+    ctrl_policy_actions = instinct_control * policy_actions
+    ctrl_instinct_actions = (1 - instinct_control) * instinct_action
+
+    # Combine the two controlled outputs
+    combined_action = ctrl_instinct_actions + ctrl_policy_actions
+    return combined_action
+
+
+class EvalActorCritic:
+    def __init__(self, policy, instinct):
+        self.instinct = instinct
+        self.policy = policy
+
+    @property
+    def recurrent_hidden_state_size(self):
+        return self.policy.recurrent_hidden_state_size
+
+    def act(self, obs, eval_recurrent_hidden_states, eval_masks, deterministic=True):
+        _, a, _, _ = self.policy.act(obs, eval_recurrent_hidden_states, eval_masks, deterministic=deterministic)
+        i_obs = torch.cat([obs, a], dim=1)
+        _, ai, _, _ = self.instinct.act(i_obs, eval_recurrent_hidden_states, eval_masks, deterministic=deterministic)
+        return None, policy_instinct_combinator(a, ai), None, None
+
 
 
 def inner_loop_ppo(
@@ -82,19 +94,27 @@ def inner_loop_ppo(
     log_writer = SummaryWriter("./log", max_queue=1, filename_suffix="log")
     device = torch.device("cpu")
 
-    env_name = "Safexp-PointGoal0-v0"
+    env_name = "Safexp-PointGoal1-v0"
     envs = make_vec_envs(env_name, np.random.randint(2 ** 32), NUM_PROC,
                          args.gamma, None, device, allow_early_resets=True, normalize=args.norm_vectors)
 
-    # actor_critic = torch.load("/Users/djrg/code/instincts/modular_rl_safety_gym/model_rl.pt")  # init_ppo(envs, log(args.init_sigma))
     actor_critic_policy = init_default_ppo(envs, log(args.init_sigma))
-    actor_critic_instinct = init_default_ppo(envs, log(args.init_sigma))
+
+    # Prepare modified observation shape for instinct
+    obs_shape = envs.observation_space.shape
+    inst_action_space = deepcopy(envs.action_space)
+    inst_obs_shape = list(obs_shape)
+    inst_obs_shape[0] = inst_obs_shape[0] + envs.action_space.shape[0]
+    # Prepare modified action space for instinct
+    inst_action_space.shape = list(inst_action_space.shape)
+    inst_action_space.shape[0] = inst_action_space.shape[0] * 2
+    inst_action_space.shape = tuple(inst_action_space.shape)
+    actor_critic_instinct = Policy(tuple(inst_obs_shape),
+                                   inst_action_space,
+                                   init_log_std=log(args.init_sigma),
+                                   base_kwargs={'recurrent': False})
     actor_critic_policy.to(device)
     actor_critic_instinct.to(device)
-
-    # apply the weights to the model
-    # weights = initialize_model(envs, args.init_sigma, args.lr)
-    # apply_from_list(weights, actor_critic)
 
     agent_policy = algo.PPO(
         actor_critic_policy,
@@ -122,19 +142,15 @@ def inner_loop_ppo(
                                       envs.observation_space.shape, envs.action_space,
                                       actor_critic_policy.recurrent_hidden_state_size)
 
-    instinct_observation_space_shape = (envs.observation_space.shape[0],)
-    instinct_action_space = deepcopy(envs.action_space)
-    instinct_action_space.shape = (envs.action_space.shape[0],)
     rollouts_cost = RolloutStorage(num_steps, NUM_PROC,
-                                   instinct_observation_space_shape, instinct_action_space,
+                                   inst_obs_shape, inst_action_space,
                                    actor_critic_instinct.recurrent_hidden_state_size)
 
     obs = envs.reset()
-    # i_obs = torch.cat([obs, torch.zeros((NUM_PROC, envs.action_space.shape[0]))],
-    #                  dim=1)  # Add zero action to the observation
+    i_obs = torch.cat([obs, torch.zeros((NUM_PROC, envs.action_space.shape[0]))], dim=1)  # Add zero action to the observation
     rollouts_rewards.obs[0].copy_(obs)
     rollouts_rewards.to(device)
-    rollouts_cost.obs[0].copy_(obs)
+    rollouts_cost.obs[0].copy_(i_obs)
     rollouts_cost.to(device)
 
     fitnesses = []
@@ -161,16 +177,12 @@ def inner_loop_ppo(
                     rollouts_cost.masks[step],
                 )
 
-            # Unpack data from two streams (policy and instinct)
-            # value, action, action_log_probs, recurrent_hidden_states = policy_output_package
-            # instinct_value, instinct_action, instinct_outputs_log_prob, instinct_recurrent_hidden_states, i_obs = \
-            #    instinct_output_package
-            # Observe reward and next obs
-            obs, reward, done, infos = envs.step(instinct_action if TEST_INSTINCT else action)
+            # Combine two networks
+            final_action = policy_instinct_combinator(action, instinct_action)
+            obs, reward, done, infos = envs.step(final_action)
             # envs.render()
 
             # Count the cost
-
             violation_cost = torch.Tensor([[0]])
             for info in infos:
                 violation_cost -= info['cost']  # Violation costs should be negative when training instinct
@@ -189,8 +201,9 @@ def inner_loop_ppo(
                  for info in infos])
             rollouts_rewards.insert(obs, recurrent_hidden_states, action,
                                     action_log_probs, value, reward, masks, bad_masks)
-            rollouts_cost.insert(obs, instinct_recurrent_hidden_states, instinct_action, instinct_outputs_log_prob,
-                                 instinct_value, reward, masks, bad_masks)
+            i_obs = torch.cat([obs, action], dim=1)
+            rollouts_cost.insert(i_obs, instinct_recurrent_hidden_states, instinct_action, instinct_outputs_log_prob,
+                                 instinct_value, violation_cost, masks, bad_masks)
 
         with torch.no_grad():
             next_value_policy = actor_critic_policy.get_value(
@@ -217,9 +230,6 @@ def inner_loop_ppo(
 
         if not TEST_INSTINCT:
             fits, info = evaluate(actor_critic_policy, ob_rms, envs, NUM_PROC, device, instinct_on=inst_on,
-                                  visualise=visualize)
-        else:
-            fits, info = evaluate(actor_critic_instinct, ob_rms, envs, NUM_PROC, device, instinct_on=inst_on,
                                   visualise=visualize)
         eval_cost = info['cost']
         print(
