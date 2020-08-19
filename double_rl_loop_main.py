@@ -54,7 +54,8 @@ def policy_instinct_combinator(policy_actions, instinct_outputs):
 
     # Divert the control from action in the instinct
     instinct_action = instinct_outputs[:, instinct_half_shape:]
-    instinct_control = instinct_outputs[:, :instinct_half_shape]
+    instinct_control = (instinct_outputs[:, :instinct_half_shape] + 1) * 0.5  # Bring tanh(x) to [0, 1] range
+    instinct_control = torch.clamp(instinct_control, 0.0, 1.0)
 
     # Control the policy and instinct outputs
     ctrl_policy_actions = instinct_control * policy_actions
@@ -233,14 +234,23 @@ def inner_loop_ppo(
                                   visualise=visualize)
         eval_cost = info['cost']
         print(
-            f"Step {j}, Fitness {fits.item()}, cost = {eval_cost}, value_loss = {value_loss}, action_loss = {action_loss}, "
+            f"Step {j}, Fitness {fits.item()}, value_loss = {value_loss}, action_loss = {action_loss}, "
             f"dist_entropy = {dist_entropy}")
+        print(
+            f"Step {j}, Cost {eval_cost}, value_loss instinct = {val_loss_i}, action_loss instinct= {action_loss_i}, "
+            f"dist_entropy instinct = {dist_entropy_i}")
+        print("-----------------------------------------------------------------")
 
         # Tensorboard logging
         log_writer.add_scalar("fitness", fits.item(), j)
         log_writer.add_scalar("value loss", value_loss, j)
         log_writer.add_scalar("action loss", action_loss, j)
         log_writer.add_scalar("dist entropy", dist_entropy, j)
+
+        log_writer.add_scalar("cost", eval_cost, j)
+        log_writer.add_scalar("value loss instinct", val_loss_i, j)
+        log_writer.add_scalar("action loss instinct", action_loss_i, j)
+        log_writer.add_scalar("dist entropy instinct", dist_entropy_i, j)
 
         fitnesses.append(fits)
         if fits.item() > best_fitness_so_far:
