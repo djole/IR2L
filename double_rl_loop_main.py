@@ -28,7 +28,7 @@ from torch.utils.tensorboard import SummaryWriter
 # }
 
 NP_RANDOM, _ = seeding.np_random(None)
-NUM_PROC = 1
+NUM_PROC = 4
 TEST_INSTINCT = False
 
 
@@ -82,7 +82,6 @@ class EvalActorCritic:
         return None, policy_instinct_combinator(a, ai), None, None
 
 
-
 def inner_loop_ppo(
         args,
         learning_rate,
@@ -97,6 +96,8 @@ def inner_loop_ppo(
 
     env_name = "Safexp-PointGoal1-v0"
     envs = make_vec_envs(env_name, np.random.randint(2 ** 32), NUM_PROC,
+                         args.gamma, None, device, allow_early_resets=True, normalize=args.norm_vectors)
+    eval_envs = make_vec_envs(env_name, np.random.randint(2 ** 32), 1,
                          args.gamma, None, device, allow_early_resets=True, normalize=args.norm_vectors)
 
     actor_critic_policy = init_default_ppo(envs, log(args.init_sigma))
@@ -155,10 +156,6 @@ def inner_loop_ppo(
     rollouts_cost.to(device)
 
     fitnesses = []
-    violation_cost = 0
-    training_episode_cum_reward = 0
-    training_episode_cum_cost = 0
-
     best_fitness_so_far = float("-Inf")
 
     for j in range(num_updates):
@@ -184,22 +181,13 @@ def inner_loop_ppo(
             # envs.render()
 
             # Count the cost
-            violation_cost = torch.Tensor([[0]])
-            for info in infos:
-                violation_cost -= info['cost']  # Violation costs should be negative when training instinct
+            violation_cost = torch.Tensor([[0]] * NUM_PROC)
+            for info_idx in range(len(infos)):
+                violation_cost[info_idx][0] -= infos[info_idx]['cost']  # Violation costs should be negative when training instinct
 
-            training_episode_cum_reward += reward
-            training_episode_cum_cost += violation_cost
-            if done[0]:
-                # print(f"{training_episode_cum_reward[0][0]},")
-                training_episode_cum_reward = 0
-                training_episode_cum_cost = 0
             # If done then clean the history of observations.
-            masks = torch.FloatTensor(
-                [[0.0] if done_ else [1.0] for done_ in done])
-            bad_masks = torch.FloatTensor(
-                [[0.0] if 'bad_transition' in info.keys() else [1.0]
-                 for info in infos])
+            masks = torch.FloatTensor([[0.0] if done_ else [1.0] for done_ in done])
+            bad_masks = torch.FloatTensor([[0.0] if 'bad_transition' in info.keys() else [1.0] for info in infos])
             rollouts_rewards.insert(obs, recurrent_hidden_states, action,
                                     action_log_probs, value, reward, masks, bad_masks)
             i_obs = torch.cat([obs, action], dim=1)
@@ -230,7 +218,7 @@ def inner_loop_ppo(
             ob_rms = ob_rms.ob_rms
 
         if not TEST_INSTINCT:
-            fits, info = evaluate(actor_critic_policy, ob_rms, envs, NUM_PROC, device, instinct_on=inst_on,
+            fits, info = evaluate(actor_critic_policy, ob_rms, eval_envs, NUM_PROC, device, instinct_on=inst_on,
                                   visualise=visualize)
         eval_cost = info['cost']
         print(
@@ -271,7 +259,7 @@ def main():
     inner_loop_ppo(
         args,
         args.lr,
-        num_steps=10000,
+        num_steps=2500,
         num_updates=1000,
         inst_on=False,
         visualize=False
