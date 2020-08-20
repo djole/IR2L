@@ -1,6 +1,4 @@
-import copy
-import statistics
-from math import log, sin, cos, pi
+from math import log
 
 import torch
 import numpy as np
@@ -16,7 +14,10 @@ from a2c_ppo_acktr.evaluation import evaluate
 from a2c_ppo_acktr.model import init_default_ppo, Policy
 from a2c_ppo_acktr.storage import RolloutStorage
 from arguments import get_args
+from exp_dir_util import get_experiment_save_dir
+
 from copy import deepcopy
+from os.path import join
 from torch.utils.tensorboard import SummaryWriter
 
 # config = {
@@ -88,10 +89,11 @@ def inner_loop_ppo(
         num_steps,
         num_updates,
         inst_on,
-        visualize
+        visualize,
+        save_dir
 ):
     torch.set_num_threads(1)
-    log_writer = SummaryWriter("./log", max_queue=1, filename_suffix="log")
+    log_writer = SummaryWriter(save_dir, max_queue=1, filename_suffix="log")
     device = torch.device("cpu")
 
     env_name = "Safexp-PointGoal1-v0"
@@ -243,7 +245,8 @@ def inner_loop_ppo(
         fitnesses.append(fits)
         if fits.item() > best_fitness_so_far:
             best_fitness_so_far = fits.item()
-            torch.save(actor_critic_instinct if TEST_INSTINCT else actor_critic_policy, "model_rl.pt")
+            torch.save(actor_critic_policy, join(save_dir, "model_rl_policy.pt"))
+            torch.save(actor_critic_instinct, join(save_dir, "model_rl_instinct.pt"))
     return (fitnesses[-1]), 0, 0
 
 
@@ -255,6 +258,7 @@ def main():
     args.lr = 0.0001
 
     # plot_weight_histogram(parameters)
+    exp_save_dir = get_experiment_save_dir(args)
 
     inner_loop_ppo(
         args,
@@ -262,7 +266,8 @@ def main():
         num_steps=2500,
         num_updates=1000,
         inst_on=False,
-        visualize=False
+        visualize=False,
+        save_dir=exp_save_dir
     )
 
 
