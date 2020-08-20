@@ -11,7 +11,7 @@ import matplotlib.pyplot as plt
 from a2c_ppo_acktr import algo, utils
 from a2c_ppo_acktr.envs import make_vec_envs
 from a2c_ppo_acktr.evaluation import evaluate
-from a2c_ppo_acktr.model import init_default_ppo, Policy
+from a2c_ppo_acktr.model import init_default_ppo, Policy, custom_weight_init
 from a2c_ppo_acktr.storage import RolloutStorage
 from arguments import get_args
 from exp_dir_util import get_experiment_save_dir
@@ -182,6 +182,9 @@ def inner_loop_ppo(
             obs, reward, done, infos = envs.step(final_action)
             # envs.render()
 
+            if j % 10 == 0:
+                custom_weight_init(actor_critic_policy)  # Randomize the policy TODO this is only for testing
+
             # Count the cost
             violation_cost = torch.Tensor([[0]] * NUM_PROC)
             for info_idx in range(len(infos)):
@@ -209,7 +212,7 @@ def inner_loop_ppo(
         rollouts_cost.compute_returns(next_value_instinct, args.use_gae, args.gamma,
                                       args.gae_lambda, args.use_proper_time_limits)
 
-        value_loss, action_loss, dist_entropy = agent_policy.update(rollouts_rewards)
+        value_loss, action_loss, dist_entropy = 0, 0, 0# agent_policy.update(rollouts_rewards)
         val_loss_i, action_loss_i, dist_entropy_i = agent_instinct.update(rollouts_cost)
 
         rollouts_rewards.after_update()
