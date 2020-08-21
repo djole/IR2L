@@ -64,7 +64,7 @@ def policy_instinct_combinator(policy_actions, instinct_outputs):
 
     # Combine the two controlled outputs
     combined_action = ctrl_instinct_actions + ctrl_policy_actions
-    return combined_action
+    return instinct_action #  combined_action
 
 
 class EvalActorCritic:
@@ -197,7 +197,7 @@ def inner_loop_ppo(
                                     action_log_probs, value, reward, masks, bad_masks)
             i_obs = torch.cat([obs, action], dim=1)
             rollouts_cost.insert(i_obs, instinct_recurrent_hidden_states, instinct_action, instinct_outputs_log_prob,
-                                 instinct_value, violation_cost, masks, bad_masks)
+                                 instinct_value, value, masks, bad_masks)
 
         with torch.no_grad():
             next_value_policy = actor_critic_policy.get_value(
