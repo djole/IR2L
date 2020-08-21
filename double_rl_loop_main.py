@@ -96,7 +96,7 @@ def inner_loop_ppo(
     log_writer = SummaryWriter(save_dir, max_queue=1, filename_suffix="log")
     device = torch.device("cpu")
 
-    env_name = "Safexp-PointGoal1-v0"
+    env_name = "Safexp-PointGoal0-v0"
     envs = make_vec_envs(env_name, np.random.randint(2 ** 32), NUM_PROC,
                          args.gamma, None, device, allow_early_resets=True, normalize=args.norm_vectors)
     eval_envs = make_vec_envs(env_name, np.random.randint(2 ** 32), 1,
@@ -108,7 +108,7 @@ def inner_loop_ppo(
     obs_shape = envs.observation_space.shape
     inst_action_space = deepcopy(envs.action_space)
     inst_obs_shape = list(obs_shape)
-    inst_obs_shape[0] = inst_obs_shape[0] + envs.action_space.shape[0]
+    # inst_obs_shape[0] = inst_obs_shape[0] + envs.action_space.shape[0]
     # Prepare modified action space for instinct
     inst_action_space.shape = list(inst_action_space.shape)
     inst_action_space.shape[0] = inst_action_space.shape[0] * 2
@@ -154,7 +154,7 @@ def inner_loop_ppo(
     i_obs = torch.cat([obs, torch.zeros((NUM_PROC, envs.action_space.shape[0]))], dim=1)  # Add zero action to the observation
     rollouts_rewards.obs[0].copy_(obs)
     rollouts_rewards.to(device)
-    rollouts_cost.obs[0].copy_(i_obs)
+    rollouts_cost.obs[0].copy_(obs)
     rollouts_cost.to(device)
 
     fitnesses = []
@@ -196,7 +196,7 @@ def inner_loop_ppo(
             rollouts_rewards.insert(obs, recurrent_hidden_states, action,
                                     action_log_probs, value, reward, masks, bad_masks)
             i_obs = torch.cat([obs, action], dim=1)
-            rollouts_cost.insert(i_obs, instinct_recurrent_hidden_states, instinct_action, instinct_outputs_log_prob,
+            rollouts_cost.insert(obs, instinct_recurrent_hidden_states, instinct_action, instinct_outputs_log_prob,
                                  instinct_value, value, masks, bad_masks)
 
         with torch.no_grad():
