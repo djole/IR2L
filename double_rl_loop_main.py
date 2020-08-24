@@ -64,7 +64,7 @@ def policy_instinct_combinator(policy_actions, instinct_outputs):
 
     # Combine the two controlled outputs
     combined_action = ctrl_instinct_actions + ctrl_policy_actions
-    return instinct_action #  combined_action
+    return combined_action
 
 
 class EvalActorCritic:
@@ -108,7 +108,7 @@ def inner_loop_ppo(
     obs_shape = envs.observation_space.shape
     inst_action_space = deepcopy(envs.action_space)
     inst_obs_shape = list(obs_shape)
-    # inst_obs_shape[0] = inst_obs_shape[0] + envs.action_space.shape[0]
+    inst_obs_shape[0] = inst_obs_shape[0] + envs.action_space.shape[0]
     # Prepare modified action space for instinct
     inst_action_space.shape = list(inst_action_space.shape)
     inst_action_space.shape[0] = inst_action_space.shape[0] * 2
@@ -154,7 +154,7 @@ def inner_loop_ppo(
     i_obs = torch.cat([obs, torch.zeros((NUM_PROC, envs.action_space.shape[0]))], dim=1)  # Add zero action to the observation
     rollouts_rewards.obs[0].copy_(obs)
     rollouts_rewards.to(device)
-    rollouts_cost.obs[0].copy_(obs)
+    rollouts_cost.obs[0].copy_(i_obs)
     rollouts_cost.to(device)
 
     fitnesses = []
@@ -196,8 +196,8 @@ def inner_loop_ppo(
             rollouts_rewards.insert(obs, recurrent_hidden_states, action,
                                     action_log_probs, value, reward, masks, bad_masks)
             i_obs = torch.cat([obs, action], dim=1)
-            rollouts_cost.insert(obs, instinct_recurrent_hidden_states, instinct_action, instinct_outputs_log_prob,
-                                 instinct_value, value, masks, bad_masks)
+            rollouts_cost.insert(i_obs, instinct_recurrent_hidden_states, instinct_action, instinct_outputs_log_prob,
+                                 instinct_value, violation_cost, masks, bad_masks)
 
         with torch.no_grad():
             next_value_policy = actor_critic_policy.get_value(
@@ -212,7 +212,7 @@ def inner_loop_ppo(
         rollouts_cost.compute_returns(next_value_instinct, args.use_gae, args.gamma,
                                       args.gae_lambda, args.use_proper_time_limits)
 
-        value_loss, action_loss, dist_entropy = 0, 0, 0# agent_policy.update(rollouts_rewards)
+        #value_loss, action_loss, dist_entropy = agent_policy.update(rollouts_rewards) // TODO return this back on
         val_loss_i, action_loss_i, dist_entropy_i = agent_instinct.update(rollouts_cost)
 
         rollouts_rewards.after_update()
@@ -223,7 +223,7 @@ def inner_loop_ppo(
             ob_rms = ob_rms.ob_rms
 
         if not TEST_INSTINCT:
-            fits, info = evaluate(actor_critic_policy, ob_rms, eval_envs, NUM_PROC, device, instinct_on=inst_on,
+            fits, info = evaluate(EvalActorCritic(actor_critic_policy, actor_critic_instinct), ob_rms, eval_envs, NUM_PROC, device, instinct_on=inst_on,
                                   visualise=visualize)
         eval_cost = info['cost']
         print(
@@ -258,7 +258,7 @@ def main():
     print("start the train function")
 
     args.init_sigma = 0.6
-    args.lr = 0.0001
+    args.lr = 0.001
 
     # plot_weight_histogram(parameters)
     exp_save_dir = get_experiment_save_dir(args)
@@ -266,7 +266,7 @@ def main():
     inner_loop_ppo(
         args,
         args.lr,
-        num_steps=2500,
+        num_steps=10000,
         num_updates=1000,
         inst_on=False,
         visualize=False,
