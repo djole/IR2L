@@ -96,7 +96,7 @@ def inner_loop_ppo(
     log_writer = SummaryWriter(save_dir, max_queue=1, filename_suffix="log")
     device = torch.device("cpu")
 
-    env_name = "Safexp-PointGoal0-v0"
+    env_name = "Safexp-PointGoal1-v0"
     envs = make_vec_envs(env_name, np.random.randint(2 ** 32), NUM_PROC,
                          args.gamma, None, device, allow_early_resets=True, normalize=args.norm_vectors)
     eval_envs = make_vec_envs(env_name, np.random.randint(2 ** 32), 1,
