@@ -212,7 +212,7 @@ def inner_loop_ppo(
         rollouts_cost.compute_returns(next_value_instinct, args.use_gae, args.gamma,
                                       args.gae_lambda, args.use_proper_time_limits)
 
-        #value_loss, action_loss, dist_entropy = agent_policy.update(rollouts_rewards) // TODO return this back on
+        value_loss, action_loss, dist_entropy = 0, 0, 0 # agent_policy.update(rollouts_rewards) // TODO return this back on
         val_loss_i, action_loss_i, dist_entropy_i = agent_instinct.update(rollouts_cost)
 
         rollouts_rewards.after_update()
