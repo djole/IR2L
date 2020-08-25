@@ -78,8 +78,8 @@ class EvalActorCritic:
 
     def act(self, obs, eval_recurrent_hidden_states, eval_masks, deterministic=True):
         _, a, _, _ = self.policy.act(obs, eval_recurrent_hidden_states, eval_masks, deterministic=deterministic)
-        i_obs = torch.cat([obs, a], dim=1)
-        _, ai, _, _ = self.instinct.act(i_obs, eval_recurrent_hidden_states, eval_masks, deterministic=deterministic)
+        # i_obs = torch.cat([obs, a], dim=1)
+        _, ai, _, _ = self.instinct.act(obs, eval_recurrent_hidden_states, eval_masks, deterministic=deterministic)
         return None, policy_instinct_combinator(a, ai), None, None
 
 
@@ -108,10 +108,10 @@ def inner_loop_ppo(
     obs_shape = envs.observation_space.shape
     inst_action_space = deepcopy(envs.action_space)
     inst_obs_shape = list(obs_shape)
-    inst_obs_shape[0] = inst_obs_shape[0] + envs.action_space.shape[0]
+    inst_obs_shape[0] = inst_obs_shape[0]  # + envs.action_space.shape[0]
     # Prepare modified action space for instinct
     inst_action_space.shape = list(inst_action_space.shape)
-    inst_action_space.shape[0] = inst_action_space.shape[0] * 2
+    inst_action_space.shape[0] = inst_action_space.shape[0]  # * 2
     inst_action_space.shape = tuple(inst_action_space.shape)
     actor_critic_instinct = Policy(tuple(inst_obs_shape),
                                    inst_action_space,
@@ -151,10 +151,10 @@ def inner_loop_ppo(
                                    actor_critic_instinct.recurrent_hidden_state_size)
 
     obs = envs.reset()
-    i_obs = torch.cat([obs, torch.zeros((NUM_PROC, envs.action_space.shape[0]))], dim=1)  # Add zero action to the observation
+    # i_obs = torch.cat([obs, torch.zeros((NUM_PROC, envs.action_space.shape[0]))], dim=1)  # Add zero action to the observation
     rollouts_rewards.obs[0].copy_(obs)
     rollouts_rewards.to(device)
-    rollouts_cost.obs[0].copy_(i_obs)
+    rollouts_cost.obs[0].copy_(obs)
     rollouts_cost.to(device)
 
     fitnesses = []
@@ -182,21 +182,19 @@ def inner_loop_ppo(
             obs, reward, done, infos = envs.step(final_action)
             # envs.render()
 
-            if j % 10 == 0:
-                custom_weight_init(actor_critic_policy)  # Randomize the policy TODO this is only for testing
-
             # Count the cost
             violation_cost = torch.Tensor([[0]] * NUM_PROC)
             for info_idx in range(len(infos)):
-                violation_cost[info_idx][0] -= infos[info_idx]['cost']  # Violation costs should be negative when training instinct
+                # Violation costs should be negative when training instinct
+                violation_cost[info_idx][0] -= infos[info_idx]['cost']
 
             # If done then clean the history of observations.
             masks = torch.FloatTensor([[0.0] if done_ else [1.0] for done_ in done])
             bad_masks = torch.FloatTensor([[0.0] if 'bad_transition' in info.keys() else [1.0] for info in infos])
             rollouts_rewards.insert(obs, recurrent_hidden_states, action,
                                     action_log_probs, value, reward, masks, bad_masks)
-            i_obs = torch.cat([obs, action], dim=1)
-            rollouts_cost.insert(i_obs, instinct_recurrent_hidden_states, instinct_action, instinct_outputs_log_prob,
+            # i_obs = torch.cat([obs, action], dim=1)
+            rollouts_cost.insert(obs, instinct_recurrent_hidden_states, instinct_action, instinct_outputs_log_prob,
                                  instinct_value, violation_cost, masks, bad_masks)
 
         with torch.no_grad():
@@ -212,7 +210,7 @@ def inner_loop_ppo(
         rollouts_cost.compute_returns(next_value_instinct, args.use_gae, args.gamma,
                                       args.gae_lambda, args.use_proper_time_limits)
 
-        value_loss, action_loss, dist_entropy = 0, 0, 0 # agent_policy.update(rollouts_rewards) // TODO return this back on
+        value_loss, action_loss, dist_entropy = 0, 0, 0  # agent_policy.update(rollouts_rewards) // TODO return this back on
         val_loss_i, action_loss_i, dist_entropy_i = agent_instinct.update(rollouts_cost)
 
         rollouts_rewards.after_update()
@@ -250,6 +248,8 @@ def inner_loop_ppo(
             best_fitness_so_far = fits.item()
             torch.save(actor_critic_policy, join(save_dir, "model_rl_policy.pt"))
             torch.save(actor_critic_instinct, join(save_dir, "model_rl_instinct.pt"))
+        torch.save(actor_critic_policy, join(save_dir, "model_rl_policy_latest.pt"))
+        torch.save(actor_critic_instinct, join(save_dir, "model_rl_instinct_latest.pt"))
     return (fitnesses[-1]), 0, 0
 
 
