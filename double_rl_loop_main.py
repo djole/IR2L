@@ -45,26 +45,26 @@ def plot_weight_histogram(parameters):
 
 def policy_instinct_combinator(policy_actions, instinct_outputs):
     # Split the shape
-    instinct_half_shape = int(instinct_outputs.shape[1] / 2)
+    #instinct_half_shape = int(instinct_outputs.shape[1] / 2)
 
-    # Test if the shapes work
-    assert instinct_half_shape == policy_actions.shape[0] or len(policy_actions.shape) == len(instinct_outputs.shape), \
-        "Wrong matrices shapes"
-    if len(policy_actions.shape) > 1:
-        assert policy_actions.shape[0] == instinct_outputs.shape[0], "Wrong matrices shapes"
+    ## Test if the shapes work
+    #assert instinct_half_shape == policy_actions.shape[0] or len(policy_actions.shape) == len(instinct_outputs.shape), \
+    #    "Wrong matrices shapes"
+    #if len(policy_actions.shape) > 1:
+    #    assert policy_actions.shape[0] == instinct_outputs.shape[0], "Wrong matrices shapes"
 
-    # Divert the control from action in the instinct
-    instinct_action = instinct_outputs[:, instinct_half_shape:]
-    instinct_control = (instinct_outputs[:, :instinct_half_shape] + 1) * 0.5  # Bring tanh(x) to [0, 1] range
-    instinct_control = torch.clamp(instinct_control, 0.0, 1.0)
+    ## Divert the control from action in the instinct
+    #instinct_action = instinct_outputs[:, instinct_half_shape:]
+    #instinct_control = (instinct_outputs[:, :instinct_half_shape] + 1) * 0.5  # Bring tanh(x) to [0, 1] range
+    #instinct_control = torch.clamp(instinct_control, 0.0, 1.0)
 
-    # Control the policy and instinct outputs
-    ctrl_policy_actions = instinct_control * policy_actions
-    ctrl_instinct_actions = (1 - instinct_control) * instinct_action
+    ## Control the policy and instinct outputs
+    #ctrl_policy_actions = instinct_control * policy_actions
+    #ctrl_instinct_actions = (1 - instinct_control) * instinct_action
 
-    # Combine the two controlled outputs
-    combined_action = ctrl_instinct_actions + ctrl_policy_actions
-    return combined_action
+    ## Combine the two controlled outputs
+    #combined_action = ctrl_instinct_actions + ctrl_policy_actions
+    return instinct_outputs
 
 
 class EvalActorCritic:
