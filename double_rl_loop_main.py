@@ -29,7 +29,7 @@ from torch.utils.tensorboard import SummaryWriter
 # }
 
 NP_RANDOM, _ = seeding.np_random(None)
-NUM_PROC = 4
+NUM_PROC = 1
 TEST_INSTINCT = False
 
 
@@ -45,26 +45,26 @@ def plot_weight_histogram(parameters):
 
 def policy_instinct_combinator(policy_actions, instinct_outputs):
     # Split the shape
-    #instinct_half_shape = int(instinct_outputs.shape[1] / 2)
+    instinct_half_shape = int(instinct_outputs.shape[1] / 2)
 
-    ## Test if the shapes work
-    #assert instinct_half_shape == policy_actions.shape[0] or len(policy_actions.shape) == len(instinct_outputs.shape), \
-    #    "Wrong matrices shapes"
-    #if len(policy_actions.shape) > 1:
-    #    assert policy_actions.shape[0] == instinct_outputs.shape[0], "Wrong matrices shapes"
+    # Test if the shapes work
+    assert instinct_half_shape == policy_actions.shape[0] or len(policy_actions.shape) == len(instinct_outputs.shape), \
+        "Wrong matrices shapes"
+    if len(policy_actions.shape) > 1:
+        assert policy_actions.shape[0] == instinct_outputs.shape[0], "Wrong matrices shapes"
 
-    ## Divert the control from action in the instinct
-    #instinct_action = instinct_outputs[:, instinct_half_shape:]
-    #instinct_control = (instinct_outputs[:, :instinct_half_shape] + 1) * 0.5  # Bring tanh(x) to [0, 1] range
-    #instinct_control = torch.clamp(instinct_control, 0.0, 1.0)
+    # Divert the control from action in the instinct
+    instinct_action = instinct_outputs[:, instinct_half_shape:]
+    instinct_control = (instinct_outputs[:, :instinct_half_shape] + 1) * 0.5  # Bring tanh(x) to [0, 1] range
+    instinct_control = torch.clamp(instinct_control, 0.0, 1.0)
 
-    ## Control the policy and instinct outputs
-    #ctrl_policy_actions = instinct_control * policy_actions
-    #ctrl_instinct_actions = (1 - instinct_control) * instinct_action
+    # Control the policy and instinct outputs
+    ctrl_policy_actions = instinct_control * policy_actions
+    ctrl_instinct_actions = (1 - instinct_control) * instinct_action
 
-    ## Combine the two controlled outputs
-    #combined_action = ctrl_instinct_actions + ctrl_policy_actions
-    return instinct_outputs
+    # Combine the two controlled outputs
+    combined_action = ctrl_instinct_actions + ctrl_policy_actions
+    return combined_action
 
 
 class EvalActorCritic:
@@ -78,8 +78,8 @@ class EvalActorCritic:
 
     def act(self, obs, eval_recurrent_hidden_states, eval_masks, deterministic=True):
         _, a, _, _ = self.policy.act(obs, eval_recurrent_hidden_states, eval_masks, deterministic=deterministic)
-        # i_obs = torch.cat([obs, a], dim=1)
-        _, ai, _, _ = self.instinct.act(obs, eval_recurrent_hidden_states, eval_masks, deterministic=deterministic)
+        i_obs = torch.cat([obs, a], dim=1)
+        _, ai, _, _ = self.instinct.act(i_obs, eval_recurrent_hidden_states, eval_masks, deterministic=deterministic)
         return None, policy_instinct_combinator(a, ai), None, None
 
 
@@ -108,10 +108,10 @@ def inner_loop_ppo(
     obs_shape = envs.observation_space.shape
     inst_action_space = deepcopy(envs.action_space)
     inst_obs_shape = list(obs_shape)
-    inst_obs_shape[0] = inst_obs_shape[0]  # + envs.action_space.shape[0]
+    inst_obs_shape[0] = inst_obs_shape[0] + envs.action_space.shape[0]
     # Prepare modified action space for instinct
     inst_action_space.shape = list(inst_action_space.shape)
-    inst_action_space.shape[0] = inst_action_space.shape[0]  # * 2
+    inst_action_space.shape[0] = inst_action_space.shape[0] * 2
     inst_action_space.shape = tuple(inst_action_space.shape)
     actor_critic_instinct = Policy(tuple(inst_obs_shape),
                                    inst_action_space,
@@ -151,10 +151,10 @@ def inner_loop_ppo(
                                    actor_critic_instinct.recurrent_hidden_state_size)
 
     obs = envs.reset()
-    # i_obs = torch.cat([obs, torch.zeros((NUM_PROC, envs.action_space.shape[0]))], dim=1)  # Add zero action to the observation
+    i_obs = torch.cat([obs, torch.zeros((NUM_PROC, envs.action_space.shape[0]))], dim=1)  # Add zero action to the observation
     rollouts_rewards.obs[0].copy_(obs)
     rollouts_rewards.to(device)
-    rollouts_cost.obs[0].copy_(obs)
+    rollouts_cost.obs[0].copy_(i_obs)
     rollouts_cost.to(device)
 
     fitnesses = []
@@ -193,8 +193,8 @@ def inner_loop_ppo(
             bad_masks = torch.FloatTensor([[0.0] if 'bad_transition' in info.keys() else [1.0] for info in infos])
             rollouts_rewards.insert(obs, recurrent_hidden_states, action,
                                     action_log_probs, value, reward, masks, bad_masks)
-            # i_obs = torch.cat([obs, action], dim=1)
-            rollouts_cost.insert(obs, instinct_recurrent_hidden_states, instinct_action, instinct_outputs_log_prob,
+            i_obs = torch.cat([obs, action], dim=1)
+            rollouts_cost.insert(i_obs, instinct_recurrent_hidden_states, instinct_action, instinct_outputs_log_prob,
                                  instinct_value, violation_cost, masks, bad_masks)
 
         with torch.no_grad():
