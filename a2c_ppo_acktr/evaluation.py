@@ -38,7 +38,7 @@ def evaluate(actor_critic, ob_rms, eval_envs, num_processes,
         total_reward = reward
         for info in infos:
             # total_reward -= info['cost']
-            cost += info['cost']
+            cost -= info['cost']
 
         if visualise:
             eval_envs.render()
