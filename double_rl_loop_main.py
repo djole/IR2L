@@ -33,6 +33,10 @@ NUM_PROC = 1
 TEST_INSTINCT = False
 
 
+def phase_shifter(iteration, phase_length=100):
+    return (iteration // phase_length) % 2 == 0
+
+
 def plot_weight_histogram(parameters):
     flattened_params = []
     for p in parameters:
@@ -210,8 +214,14 @@ def inner_loop_ppo(
         rollouts_cost.compute_returns(next_value_instinct, args.use_gae, args.gamma,
                                       args.gae_lambda, args.use_proper_time_limits)
 
-        value_loss, action_loss, dist_entropy = 0, 0, 0  # agent_policy.update(rollouts_rewards) // TODO return this back on
-        val_loss_i, action_loss_i, dist_entropy_i = agent_instinct.update(rollouts_cost)
+        if phase_shifter(j, 200):
+            # Instinct training phase
+            value_loss, action_loss, dist_entropy = 0, 0, 0
+            val_loss_i, action_loss_i, dist_entropy_i = agent_instinct.update(rollouts_cost)
+        else:
+            # Policy training phase
+            value_loss, action_loss, dist_entropy = agent_policy.update(rollouts_rewards)
+            val_loss_i, action_loss_i, dist_entropy_i = 0, 0, 0
 
         rollouts_rewards.after_update()
         rollouts_cost.after_update()
