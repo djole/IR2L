@@ -68,7 +68,7 @@ def policy_instinct_combinator(policy_actions, instinct_outputs):
 
     # Combine the two controlled outputs
     combined_action = ctrl_instinct_actions + ctrl_policy_actions
-    return combined_action
+    return combined_action, instinct_control
 
 
 class EvalActorCritic:
@@ -84,7 +84,8 @@ class EvalActorCritic:
         _, a, _, _ = self.policy.act(obs, eval_recurrent_hidden_states, eval_masks, deterministic=deterministic)
         i_obs = torch.cat([obs, a], dim=1)
         _, ai, _, _ = self.instinct.act(i_obs, eval_recurrent_hidden_states, eval_masks, deterministic=deterministic)
-        return None, policy_instinct_combinator(a, ai), None, None
+        total_action, i_control = policy_instinct_combinator(a, ai)
+        return None, total_action, i_control, None
 
 
 def inner_loop_ppo(
@@ -182,7 +183,7 @@ def inner_loop_ppo(
                 )
 
             # Combine two networks
-            final_action = policy_instinct_combinator(action, instinct_action)
+            final_action, i_control = policy_instinct_combinator(action, instinct_action)
             obs, reward, done, infos = envs.step(final_action)
             # envs.render()
 
@@ -191,6 +192,11 @@ def inner_loop_ppo(
             for info_idx in range(len(infos)):
                 # Violation costs should be negative when training instinct
                 violation_cost[info_idx][0] -= infos[info_idx]['cost']
+
+            # Add a regularization clause to discurage instinct to activate if not necessary
+            for i_control_idx in range(len(i_control)):
+                i_control_on_idx = i_control[i_control_idx]
+                violation_cost[i_control_idx][0] -= (1 - i_control_on_idx).sum().item() * 0.01
 
             # If done then clean the history of observations.
             masks = torch.FloatTensor([[0.0] if done_ else [1.0] for done_ in done])
