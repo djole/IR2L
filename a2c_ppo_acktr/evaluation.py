@@ -43,7 +43,7 @@ def evaluate(actor_critic, ob_rms, eval_envs, num_processes,
         # Add a regularization clause to discurage instinct to activate if not necessary
         for i_control_idx in range(len(i_control)):
             i_control_on_idx = i_control[i_control_idx]
-            cost[i_control_idx][0] -= (1 - i_control_on_idx).sum().item() * 0.01
+            cost -= (1 - i_control_on_idx).sum().item() * 0.01
 
         if visualise:
             eval_envs.render()
