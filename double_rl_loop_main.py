@@ -31,6 +31,7 @@ from torch.utils.tensorboard import SummaryWriter
 NP_RANDOM, _ = seeding.np_random(None)
 NUM_PROC = 1
 TEST_INSTINCT = False
+INST_ACTIVATION_COST_MULTIPLIER = 0.01
 
 
 def phase_shifter(iteration, phase_length=100):
@@ -196,7 +197,7 @@ def inner_loop_ppo(
             # Add a regularization clause to discurage instinct to activate if not necessary
             for i_control_idx in range(len(i_control)):
                 i_control_on_idx = i_control[i_control_idx]
-                violation_cost[i_control_idx][0] -= (1 - i_control_on_idx).sum().item() * 0.01
+                violation_cost[i_control_idx][0] -= (1 - i_control_on_idx).sum().item() * INST_ACTIVATION_COST_MULTIPLIER
 
             # If done then clean the history of observations.
             masks = torch.FloatTensor([[0.0] if done_ else [1.0] for done_ in done])
@@ -282,7 +283,7 @@ def main():
     inner_loop_ppo(
         args,
         args.lr,
-        num_steps=10000,
+        num_steps=1000,
         num_updates=1000,
         inst_on=False,
         visualize=False,
