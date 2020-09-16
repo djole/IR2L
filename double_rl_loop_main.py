@@ -14,7 +14,10 @@ from a2c_ppo_acktr.evaluation import evaluate
 from a2c_ppo_acktr.model import init_default_ppo, Policy, custom_weight_init
 from a2c_ppo_acktr.storage import RolloutStorage
 from arguments import get_args
-from exp_dir_util import get_experiment_save_dir
+try:
+    from exp_dir_util import get_experiment_save_dir
+except:
+    pass
 
 from copy import deepcopy
 from os.path import join
