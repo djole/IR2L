@@ -5,7 +5,7 @@ from a2c_ppo_acktr import utils
 from a2c_ppo_acktr.envs import make_vec_envs
 
 
-def evaluate(actor_critic, ob_rms, eval_envs, num_processes,
+def evaluate(actor_critic, ob_rms, eval_envs, num_processes, reward_cost_combinator,
              device, instinct_on=True, visualise=False):
 
     vec_norm = utils.get_vec_normalize(eval_envs)
@@ -35,15 +35,8 @@ def evaluate(actor_critic, ob_rms, eval_envs, num_processes,
 
         # Obser reward and next obs
         obs, reward, done, infos = eval_envs.step(final_action)
-        total_reward = reward
-        for info in infos:
-            # total_reward -= info['cost']
-            cost -= info['cost']
+        total_reward, cost = reward_cost_combinator(reward, infos, 1, i_control)
 
-        # Add a regularization clause to discurage instinct to activate if not necessary
-        for i_control_idx in range(len(i_control)):
-            i_control_on_idx = i_control[i_control_idx]
-            cost -= (1 - i_control_on_idx).sum().item() * 0.01
 
         if visualise:
             eval_envs.render()

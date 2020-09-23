@@ -41,6 +41,13 @@ def phase_shifter(iteration, phase_length=100):
     return (iteration // phase_length) % 2 == 0
 
 
+def compare_two_models(model1, model2):
+    for p1, p2 in zip(model1.parameters(), model2.parameters()):
+        if p1.data.ne(p2.data).sum() > 0:
+            return False
+    return True
+
+
 def plot_weight_histogram(parameters):
     flattened_params = []
     for p in parameters:
@@ -73,6 +80,20 @@ def policy_instinct_combinator(policy_actions, instinct_outputs):
     # Combine the two controlled outputs
     combined_action = ctrl_instinct_actions + ctrl_policy_actions
     return combined_action, instinct_control
+
+
+def reward_cost_combinator(reward_list, infos, num_processors, i_control):
+    # Count the cost
+    violation_cost = torch.Tensor([[0]] * num_processors)
+    for info_idx in range(len(infos)):
+       # Violation costs should be negative when training instinct
+       violation_cost[info_idx][0] -= infos[info_idx]['cost']
+
+    # Add a regularization clause to discurage instinct to activate if not necessary
+    for i_control_idx in range(len(i_control)):
+       i_control_on_idx = i_control[i_control_idx]
+       violation_cost[i_control_idx][0] -= (1 - i_control_on_idx).sum().item() * INST_ACTIVATION_COST_MULTIPLIER
+    return reward_list, violation_cost
 
 
 class EvalActorCritic:
@@ -191,16 +212,18 @@ def inner_loop_ppo(
             obs, reward, done, infos = envs.step(final_action)
             # envs.render()
 
-            # Count the cost
-            violation_cost = torch.Tensor([[0]] * NUM_PROC)
-            for info_idx in range(len(infos)):
-                # Violation costs should be negative when training instinct
-                violation_cost[info_idx][0] -= infos[info_idx]['cost']
+            ## Count the cost
+            #violation_cost = torch.Tensor([[0]] * NUM_PROC)
+            #for info_idx in range(len(infos)):
+            #    # Violation costs should be negative when training instinct
+            #    violation_cost[info_idx][0] -= infos[info_idx]['cost']
 
-            # Add a regularization clause to discurage instinct to activate if not necessary
-            for i_control_idx in range(len(i_control)):
-                i_control_on_idx = i_control[i_control_idx]
-                violation_cost[i_control_idx][0] -= (1 - i_control_on_idx).sum().item() * INST_ACTIVATION_COST_MULTIPLIER
+            ## Add a regularization clause to discurage instinct to activate if not necessary
+            #for i_control_idx in range(len(i_control)):
+            #    i_control_on_idx = i_control[i_control_idx]
+            #    violation_cost[i_control_idx][0] -= (1 - i_control_on_idx).sum().item() * INST_ACTIVATION_COST_MULTIPLIER
+
+            reward, violation_cost = reward_cost_combinator(reward, infos, NUM_PROC, i_control)
 
             # If done then clean the history of observations.
             masks = torch.FloatTensor([[0.0] if done_ else [1.0] for done_ in done])
@@ -225,13 +248,20 @@ def inner_loop_ppo(
                                       args.gae_lambda, args.use_proper_time_limits)
 
         if phase_shifter(j, 200):
-            # Instinct training phase
-            value_loss, action_loss, dist_entropy = 0, 0, 0
-            val_loss_i, action_loss_i, dist_entropy_i = agent_instinct.update(rollouts_cost)
-        else:
             # Policy training phase
+            p_before = deepcopy(agent_instinct.actor_critic)
             value_loss, action_loss, dist_entropy = agent_policy.update(rollouts_rewards)
             val_loss_i, action_loss_i, dist_entropy_i = 0, 0, 0
+            p_after = deepcopy(agent_instinct.actor_critic)
+            assert compare_two_models(p_before, p_after), "policy changed when it shouldn't"
+        else:
+            # Instinct training phase
+            value_loss, action_loss, dist_entropy = 0, 0, 0
+            p_before = deepcopy(agent_policy.actor_critic)
+            val_loss_i, action_loss_i, dist_entropy_i = agent_instinct.update(rollouts_cost)
+            p_after = deepcopy(agent_policy.actor_critic)
+            assert compare_two_models(p_before, p_after), "policy changed when it shouldn't"
+
 
         rollouts_rewards.after_update()
         rollouts_cost.after_update()
@@ -241,7 +271,7 @@ def inner_loop_ppo(
             ob_rms = ob_rms.ob_rms
 
         if not TEST_INSTINCT:
-            fits, info = evaluate(EvalActorCritic(actor_critic_policy, actor_critic_instinct), ob_rms, eval_envs, NUM_PROC, device, instinct_on=inst_on,
+            fits, info = evaluate(EvalActorCritic(actor_critic_policy, actor_critic_instinct), ob_rms, eval_envs, NUM_PROC, reward_cost_combinator, device, instinct_on=inst_on,
                                   visualise=visualize)
         eval_cost = info['cost']
         print(
