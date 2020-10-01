@@ -24,6 +24,7 @@ def evaluate(actor_critic, ob_rms, eval_envs, num_processes, reward_cost_combina
     cummulative_reward = 0
     cost_hazards = 0
     cost = 0
+    total_cost = 0
     while not done:
         with torch.no_grad():
             _, final_action, i_control, _ = actor_critic.act(
@@ -47,4 +48,5 @@ def evaluate(actor_critic, ob_rms, eval_envs, num_processes, reward_cost_combina
             device=device)
 
         cummulative_reward += total_reward
-    return cummulative_reward, {'cost': cost}
+        total_cost += cost
+    return cummulative_reward, {'cost': total_cost}
