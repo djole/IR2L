@@ -269,20 +269,20 @@ def inner_loop_ppo(
         rollouts_cost.compute_returns(next_value_instinct, args.use_gae, args.gamma,
                                       args.gae_lambda, args.use_proper_time_limits)
 
-        if phase_shifter(j, 200):
-            # Policy training phase
-            p_before = deepcopy(agent_instinct.actor_critic)
-            value_loss, action_loss, dist_entropy = agent_policy.update(rollouts_rewards)
-            val_loss_i, action_loss_i, dist_entropy_i = 0, 0, 0
-            p_after = deepcopy(agent_instinct.actor_critic)
-            assert compare_two_models(p_before, p_after), "policy changed when it shouldn't"
-        else:
-            # Instinct training phase
-            value_loss, action_loss, dist_entropy = 0, 0, 0
-            p_before = deepcopy(agent_policy.actor_critic)
-            val_loss_i, action_loss_i, dist_entropy_i = agent_instinct.update(rollouts_cost)
-            p_after = deepcopy(agent_policy.actor_critic)
-            assert compare_two_models(p_before, p_after), "policy changed when it shouldn't"
+        #if phase_shifter(j, 200):
+        #    # Policy training phase
+        #    p_before = deepcopy(agent_instinct.actor_critic)
+        #    value_loss, action_loss, dist_entropy = agent_policy.update(rollouts_rewards)
+        #    val_loss_i, action_loss_i, dist_entropy_i = 0, 0, 0
+        #    p_after = deepcopy(agent_instinct.actor_critic)
+        #    assert compare_two_models(p_before, p_after), "policy changed when it shouldn't"
+        #else:
+        # Instinct training phase
+        value_loss, action_loss, dist_entropy = 0, 0, 0
+        p_before = deepcopy(agent_policy.actor_critic)
+        val_loss_i, action_loss_i, dist_entropy_i = agent_instinct.update(rollouts_cost)
+        p_after = deepcopy(agent_policy.actor_critic)
+        assert compare_two_models(p_before, p_after), "policy changed when it shouldn't"
 
 
         rollouts_rewards.after_update()
