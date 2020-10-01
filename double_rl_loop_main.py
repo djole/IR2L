@@ -23,18 +23,40 @@ from copy import deepcopy
 from os.path import join
 from torch.utils.tensorboard import SummaryWriter
 
-# config = {
-#    'robot_base': 'xmls/point.xml',
-#    #'observe_sensors': False,
-#    'observe_goal_lidar': True,
-#    'constrain_hazards': True,
-#    'hazards_num': 4,
-# }
+config = {
+    'observe_goal_lidar': True,
+    'observe_box_lidar': True,
+    'lidar_max_dist': 1,
+    'lidar_num_bins': 16,
+    'task': 'goal',
+    'goal_size': 0.3,
+    'goal_keepout': 0.305,
+    'hazards_size': 0.2,
+    'hazards_keepout': 0.18,
+    'robot_base': 'xmls/point.xml',
+    'sensors_obs': ['accelerometer', 'velocimeter', 'gyro', 'magnetometer'],
+    'placements_extents': [-2, -2, 2, 2],
+    'hazards_num': 24,
+    'hazards_locations': [(-1, -1), (1, 1), (-1, 1), (1, -1),
+                          (0.0, 1), (0.0, -1), (1, 0.0), (-1, 0.0),
+                          (-2, -2), (2, -2,), (2, 2), (-2, 2),
+                          (0, -2), (0, 2), (-2, 0), (2, 0),
+                          (-1, -2), (1, 2), (1, -2), (-1, 2),
+                          (-2, -1), (-2, 1), (2, 1), (2, -1)],
+    'vases_num': 0,
+    'constrain_hazards': True,
+    'observe_hazards': True,
+    'observe_vases': False}
+
+ENV_NAME = 'SafexpCustomEnvironmentGoal1-v0'
+register(id=ENV_NAME,
+             entry_point='safety_gym.envs.mujoco:Engine',
+             kwargs={'config': config})
 
 NP_RANDOM, _ = seeding.np_random(None)
 NUM_PROC = 1
 TEST_INSTINCT = False
-INST_ACTIVATION_COST_MULTIPLIER = 0.01
+INST_ACTIVATION_COST_MULTIPLIER = 0.5
 
 
 def phase_shifter(iteration, phase_length=100):
@@ -126,7 +148,7 @@ def inner_loop_ppo(
     log_writer = SummaryWriter(save_dir, max_queue=1, filename_suffix="log")
     device = torch.device("cpu")
 
-    env_name = "Safexp-PointGoal1-v0"
+    env_name = ENV_NAME #"Safexp-PointGoal1-v0"
     envs = make_vec_envs(env_name, np.random.randint(2 ** 32), NUM_PROC,
                          args.gamma, None, device, allow_early_resets=True, normalize=args.norm_vectors)
     eval_envs = make_vec_envs(env_name, np.random.randint(2 ** 32), 1,
@@ -317,7 +339,7 @@ def main():
         args,
         args.lr,
         num_steps=1000,
-        num_updates=1000,
+        num_updates=4000,
         inst_on=False,
         visualize=False,
         save_dir=exp_save_dir
