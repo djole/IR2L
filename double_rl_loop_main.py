@@ -22,6 +22,7 @@ except:
 from copy import deepcopy
 from os.path import join
 from torch.utils.tensorboard import SummaryWriter
+from enum import Enum
 
 config = {
     'observe_goal_lidar': True,
@@ -54,13 +55,31 @@ register(id=ENV_NAME,
              kwargs={'config': config})
 
 NP_RANDOM, _ = seeding.np_random(None)
-NUM_PROC = 1
+NUM_PROC = 20
 TEST_INSTINCT = False
 INST_ACTIVATION_COST_MULTIPLIER = 0.5
 
+PHASE_LENGTH = 400
 
-def phase_shifter(iteration, phase_length=100):
-    return (iteration // phase_length) % 2 == 0
+# Phase enum
+class TrainPhases(Enum):
+    POLICY_TRAIN_PHASE = 0
+    INSTINCT_TRAIN_PHASE = 1
+
+
+class PolicyPhase(Enum):
+    TRAINED_POLICY = 0
+    RANDOM_POLICY = 1
+
+
+NP_RANDOM, _ = seeding.np_random(None)
+NUM_PROC = 10
+TEST_INSTINCT = False
+INST_ACTIVATION_COST_MULTIPLIER = 0.01
+
+
+def phase_shifter(iteration, phase_length=100, num_phases=2):
+    return (iteration // phase_length) % num_phases
 
 
 def compare_two_models(model1, model2):
@@ -213,7 +232,10 @@ def inner_loop_ppo(
     best_fitness_so_far = float("-Inf")
 
     for j in range(num_updates):
-
+        is_instinct_training = phase_shifter(j, PHASE_LENGTH,
+                                             len(TrainPhases)) == TrainPhases.INSTINCT_TRAIN_PHASE.value
+        is_instinct_deterministic = not is_instinct_training
+        is_policy_deterministic = not is_instinct_deterministic
         for step in range(num_steps):
             # Sample actions
             with torch.no_grad():
@@ -222,11 +244,13 @@ def inner_loop_ppo(
                     rollouts_rewards.obs[step],
                     rollouts_rewards.recurrent_hidden_states[step],
                     rollouts_rewards.masks[step],
+                    deterministic=is_policy_deterministic
                 )
                 instinct_value, instinct_action, instinct_outputs_log_prob, instinct_recurrent_hidden_states = actor_critic_instinct.act(
                     rollouts_cost.obs[step],
                     rollouts_cost.recurrent_hidden_states[step],
                     rollouts_cost.masks[step],
+                    deterministic=is_instinct_deterministic,
                 )
 
             # Combine two networks
@@ -269,20 +293,22 @@ def inner_loop_ppo(
         rollouts_cost.compute_returns(next_value_instinct, args.use_gae, args.gamma,
                                       args.gae_lambda, args.use_proper_time_limits)
 
-        #if phase_shifter(j, 200):
-        #    # Policy training phase
-        #    p_before = deepcopy(agent_instinct.actor_critic)
-        #    value_loss, action_loss, dist_entropy = agent_policy.update(rollouts_rewards)
-        #    val_loss_i, action_loss_i, dist_entropy_i = 0, 0, 0
-        #    p_after = deepcopy(agent_instinct.actor_critic)
-        #    assert compare_two_models(p_before, p_after), "policy changed when it shouldn't"
-        #else:
-        # Instinct training phase
-        value_loss, action_loss, dist_entropy = 0, 0, 0
-        p_before = deepcopy(agent_policy.actor_critic)
-        val_loss_i, action_loss_i, dist_entropy_i = agent_instinct.update(rollouts_cost)
-        p_after = deepcopy(agent_policy.actor_critic)
-        assert compare_two_models(p_before, p_after), "policy changed when it shouldn't"
+        if not is_instinct_training:
+            print("training policy")
+            # Policy training phase
+            p_before = deepcopy(agent_instinct.actor_critic)
+            value_loss, action_loss, dist_entropy = agent_policy.update(rollouts_rewards)
+            val_loss_i, action_loss_i, dist_entropy_i = 0, 0, 0
+            p_after = deepcopy(agent_instinct.actor_critic)
+            assert compare_two_models(p_before, p_after), "policy changed when it shouldn't"
+        else:
+            print("training instinct")
+            # Instinct training phase
+            value_loss, action_loss, dist_entropy = 0, 0, 0
+            p_before = deepcopy(agent_policy.actor_critic)
+            val_loss_i, action_loss_i, dist_entropy_i = agent_instinct.update(rollouts_cost)
+            p_after = deepcopy(agent_policy.actor_critic)
+            assert compare_two_models(p_before, p_after), "policy changed when it shouldn't"
 
 
         rollouts_rewards.after_update()
