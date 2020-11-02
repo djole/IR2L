@@ -55,7 +55,7 @@ config = {
 
 ENV_NAME = 'SafexpCustomEnvironmentGoal1-v0'
 register(id=ENV_NAME,
-             entry_point='safety_gym.envs.mujoco:Engine',
+             entry_point='safety_gym_mod.envs.mujoco:Engine',
              kwargs={'config': config})
 
 NP_RANDOM, _ = seeding.np_random(None)
