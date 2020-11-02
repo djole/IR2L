@@ -27,7 +27,11 @@ from enum import Enum
 config = {
     'observe_goal_lidar': True,
     'observe_box_lidar': True,
+
     'lidar_max_dist': 1,
+    'goal_lidar_max': 3,
+    'hazard_lidar_max': 1,
+
     'lidar_num_bins': 16,
     'task': 'goal',
     'goal_size': 0.3,
