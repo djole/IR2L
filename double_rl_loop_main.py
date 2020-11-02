@@ -5,7 +5,7 @@ import numpy as np
 import gym
 from gym.envs.registration import register
 from gym.utils import seeding
-import safety_gym
+import safety_gym_mod
 import matplotlib.pyplot as plt
 
 from a2c_ppo_acktr import algo, utils
