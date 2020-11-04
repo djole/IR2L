@@ -60,7 +60,6 @@ register(id=ENV_NAME,
 
 NP_RANDOM, _ = seeding.np_random(None)
 NUM_PROC = 20
-TEST_INSTINCT = False
 INST_ACTIVATION_COST_MULTIPLIER = 0.5
 
 PHASE_LENGTH = 400
@@ -74,12 +73,6 @@ class TrainPhases(Enum):
 class PolicyPhase(Enum):
     TRAINED_POLICY = 0
     RANDOM_POLICY = 1
-
-
-NP_RANDOM, _ = seeding.np_random(None)
-NUM_PROC = 10
-TEST_INSTINCT = False
-INST_ACTIVATION_COST_MULTIPLIER = 0.01
 
 
 def phase_shifter(iteration, phase_length=100, num_phases=2):
@@ -322,8 +315,7 @@ def inner_loop_ppo(
         if ob_rms is not None:
             ob_rms = ob_rms.ob_rms
 
-        if not TEST_INSTINCT:
-            fits, info = evaluate(EvalActorCritic(actor_critic_policy, actor_critic_instinct), ob_rms, eval_envs, NUM_PROC, reward_cost_combinator, device, instinct_on=inst_on,
+        fits, info = evaluate(EvalActorCritic(actor_critic_policy, actor_critic_instinct), ob_rms, eval_envs, NUM_PROC, reward_cost_combinator, device, instinct_on=inst_on,
                                   visualise=visualize)
         eval_cost = info['cost']
         print(
