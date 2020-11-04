@@ -62,7 +62,7 @@ NP_RANDOM, _ = seeding.np_random(None)
 NUM_PROC = 20
 INST_ACTIVATION_COST_MULTIPLIER = 0.5
 
-PHASE_LENGTH = 400
+PHASE_LENGTH = 2000
 
 # Phase enum
 class TrainPhases(Enum):
@@ -98,7 +98,7 @@ def plot_weight_histogram(parameters):
 
 def policy_instinct_combinator(policy_actions, instinct_outputs):
     # Split the shape
-    instinct_half_shape = int(instinct_outputs.shape[1] / 2)
+    instinct_half_shape = int(instinct_outputs.shape[1] - 1)
 
     # Test if the shapes work
     assert instinct_half_shape == policy_actions.shape[0] or len(policy_actions.shape) == len(instinct_outputs.shape), \
@@ -107,9 +107,9 @@ def policy_instinct_combinator(policy_actions, instinct_outputs):
         assert policy_actions.shape[0] == instinct_outputs.shape[0], "Wrong matrices shapes"
 
     # Divert the control from action in the instinct
-    instinct_action = instinct_outputs[:, instinct_half_shape:]
-    instinct_control = (instinct_outputs[:, :instinct_half_shape] + 1) * 0.5  # Bring tanh(x) to [0, 1] range
-    instinct_control = torch.clamp(instinct_control, 0.0, 1.0)
+    instinct_control = instinct_outputs[:, instinct_half_shape:]
+    instinct_action = instinct_outputs[:, :instinct_half_shape]  # Bring tanh(x) to [0, 1] range
+    instinct_control = torch.relu(torch.sign(instinct_control))
 
     # Control the policy and instinct outputs
     ctrl_policy_actions = instinct_control * policy_actions
@@ -131,6 +131,8 @@ def reward_cost_combinator(reward_list, infos, num_processors, i_control):
     for i_control_idx in range(len(i_control)):
        i_control_on_idx = i_control[i_control_idx]
        violation_cost[i_control_idx][0] -= (1 - i_control_on_idx).sum().item() * INST_ACTIVATION_COST_MULTIPLIER
+    # Substract the reward from the violation cost to get R + C, where C = C_e + C_a (cost is negative)
+    violation_cost = reward_list + violation_cost
     return reward_list, violation_cost
 
 
@@ -179,7 +181,7 @@ def inner_loop_ppo(
     inst_obs_shape[0] = inst_obs_shape[0] + envs.action_space.shape[0]
     # Prepare modified action space for instinct
     inst_action_space.shape = list(inst_action_space.shape)
-    inst_action_space.shape[0] = inst_action_space.shape[0] * 2
+    inst_action_space.shape[0] = inst_action_space.shape[0] + 1
     inst_action_space.shape = tuple(inst_action_space.shape)
     actor_critic_instinct = Policy(tuple(inst_obs_shape),
                                    inst_action_space,
@@ -254,17 +256,6 @@ def inner_loop_ppo(
             final_action, i_control = policy_instinct_combinator(action, instinct_action)
             obs, reward, done, infos = envs.step(final_action)
             # envs.render()
-
-            ## Count the cost
-            #violation_cost = torch.Tensor([[0]] * NUM_PROC)
-            #for info_idx in range(len(infos)):
-            #    # Violation costs should be negative when training instinct
-            #    violation_cost[info_idx][0] -= infos[info_idx]['cost']
-
-            ## Add a regularization clause to discurage instinct to activate if not necessary
-            #for i_control_idx in range(len(i_control)):
-            #    i_control_on_idx = i_control[i_control_idx]
-            #    violation_cost[i_control_idx][0] -= (1 - i_control_on_idx).sum().item() * INST_ACTIVATION_COST_MULTIPLIER
 
             reward, violation_cost = reward_cost_combinator(reward, infos, NUM_PROC, i_control)
 
