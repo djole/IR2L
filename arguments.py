@@ -198,7 +198,7 @@ def get_args():
     parser.add_argument(
         "--norm-vectors",
         action="store_true",
-        default=False,
+        default=True,
         help="Encase the environment into a wrapper that normalizes outputs of the said environment",
     )
 

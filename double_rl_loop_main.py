@@ -24,12 +24,15 @@ from os.path import join
 from torch.utils.tensorboard import SummaryWriter
 from enum import Enum
 
+EPISODE_LENGTH = 1000
+
 config = {
+    'num_steps': EPISODE_LENGTH,
     'observe_goal_lidar': True,
     'observe_box_lidar': True,
 
     'lidar_max_dist': 1,
-    'goal_lidar_max': 3,
+    'goal_lidar_max': 7,
     'hazard_lidar_max': 1,
 
     'lidar_num_bins': 16,
@@ -60,7 +63,6 @@ register(id=ENV_NAME,
 
 NP_RANDOM, _ = seeding.np_random(None)
 NUM_PROC = 20
-INST_ACTIVATION_COST_MULTIPLIER = 0.5
 
 PHASE_LENGTH = 2000
 
@@ -124,15 +126,16 @@ def reward_cost_combinator(reward_list, infos, num_processors, i_control):
     # Count the cost
     violation_cost = torch.Tensor([[0]] * num_processors)
     for info_idx in range(len(infos)):
-       # Violation costs should be negative when training instinct
-       violation_cost[info_idx][0] -= infos[info_idx]['cost']
+       violation_cost[info_idx][0] = (1 - infos[info_idx]['cost'])
 
     # Add a regularization clause to discurage instinct to activate if not necessary
     for i_control_idx in range(len(i_control)):
        i_control_on_idx = i_control[i_control_idx]
-       violation_cost[i_control_idx][0] -= (1 - i_control_on_idx).sum().item() * INST_ACTIVATION_COST_MULTIPLIER
-    # Substract the reward from the violation cost to get R + C, where C = C_e + C_a (cost is negative)
-    violation_cost = reward_list + violation_cost
+       violation_cost[i_control_idx][0] *= torch.mean(i_control_on_idx).item()
+
+    # Normalize the cost to the episode length
+    violation_cost /= float(EPISODE_LENGTH)
+
     return reward_list, violation_cost
 
 
