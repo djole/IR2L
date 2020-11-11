@@ -111,7 +111,7 @@ def policy_instinct_combinator(policy_actions, instinct_outputs):
     # Divert the control from action in the instinct
     instinct_control = instinct_outputs[:, instinct_half_shape:]
     instinct_action = instinct_outputs[:, :instinct_half_shape]  # Bring tanh(x) to [0, 1] range
-    instinct_control = torch.relu(torch.sign(instinct_control))
+    instinct_control = (instinct_control + 1) * 0.5
 
     # Control the policy and instinct outputs
     ctrl_policy_actions = instinct_control * policy_actions
