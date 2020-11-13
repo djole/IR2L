@@ -25,11 +25,11 @@ from torch.utils.tensorboard import SummaryWriter
 from enum import Enum
 
 EPISODE_LENGTH = 1000
-HAZARD_PUNISHMENT = 1.0
+HAZARD_PUNISHMENT = 10.0
 
 config = {
     'num_steps': EPISODE_LENGTH,
-    'hazards_cost': HAZARD_PUNISHMENT,
+    'hazards_cost': 1,
     'constrain_indicator': True,
     'observe_goal_lidar': True,
     'observe_box_lidar': True,
@@ -132,7 +132,7 @@ def reward_cost_combinator(reward_list, infos, num_processors, i_control):
     # Add a regularization clause to discurage instinct to activate if not necessary
     for i_control_idx in range(len(i_control)):
         i_control_on_idx = i_control[i_control_idx]
-        safety = (1 - infos[i_control_idx]['cost'])
+        safety = (1 - infos[i_control_idx]['cost'] * HAZARD_PUNISHMENT)
         instinct_activation = (1 - torch.mean(i_control_on_idx).item())
         violation_cost[i_control_idx][0] = safety * (1 - instinct_activation * 0.2)
 
