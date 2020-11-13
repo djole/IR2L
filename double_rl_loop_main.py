@@ -26,6 +26,7 @@ from enum import Enum
 
 EPISODE_LENGTH = 1000
 HAZARD_PUNISHMENT = 10.0
+ACTIVATION_DISCOUNT = 0.5
 
 config = {
     'num_steps': EPISODE_LENGTH,
@@ -134,7 +135,7 @@ def reward_cost_combinator(reward_list, infos, num_processors, i_control):
         i_control_on_idx = i_control[i_control_idx]
         safety = (1 - infos[i_control_idx]['cost'] * HAZARD_PUNISHMENT)
         instinct_activation = (1 - torch.mean(i_control_on_idx).item())
-        violation_cost[i_control_idx][0] = safety * (1 - instinct_activation * 0.2)
+        violation_cost[i_control_idx][0] = safety * (1 - instinct_activation * ACTIVATION_DISCOUNT)
 
     # Normalize the cost to the episode length
     violation_cost /= float(EPISODE_LENGTH)
