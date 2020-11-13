@@ -124,7 +124,7 @@ def instinct_loop_ppo(
             # Combine two networks
             final_action, i_control = policy_instinct_combinator(action, instinct_action)
             obs, reward, done, infos = envs.step(final_action)
-            envs.render()
+            #envs.render()
 
             reward, violation_cost = reward_cost_combinator(reward, infos, NUM_PROC, i_control)
 
