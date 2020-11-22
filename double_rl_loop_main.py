@@ -25,7 +25,7 @@ from torch.utils.tensorboard import SummaryWriter
 from enum import Enum
 
 EPISODE_LENGTH = 1000
-HAZARD_PUNISHMENT = 10.0
+HAZARD_PUNISHMENT = 30.0
 ACTIVATION_DISCOUNT = 0.5
 
 config = {
@@ -66,7 +66,7 @@ register(id=ENV_NAME,
              kwargs={'config': config})
 
 NP_RANDOM, _ = seeding.np_random(None)
-NUM_PROC = 40
+NUM_PROC = 20
 
 PHASE_LENGTH = 2000
 
