@@ -194,7 +194,7 @@ def inner_loop_ppo(
     #                               inst_action_space,
     #                               init_log_std=log(args.init_sigma),
     #                               base_kwargs={'recurrent': False})
-    actor_critic_instinct = torch.load("trained_instinct.pt")
+    actor_critic_instinct = torch.load("pretrained_instinct.pt")
     actor_critic_policy.to(device)
     actor_critic_instinct.to(device)
 
