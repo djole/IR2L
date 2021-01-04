@@ -179,7 +179,7 @@ def inner_loop_ppo(
     eval_envs = make_vec_envs(env_name, np.random.randint(2 ** 32), 1,
                          args.gamma, None, device, allow_early_resets=True, normalize=args.norm_vectors)
 
-    actor_critic_policy = torch.load("pretrained_policy.pt")  # init_default_ppo(envs, log(args.init_sigma))
+    actor_critic_policy = init_default_ppo(envs, log(args.init_sigma)) #torch.load("pretrained_policy.pt")
 
     # Prepare modified observation shape for instinct
     obs_shape = envs.observation_space.shape
@@ -190,11 +190,11 @@ def inner_loop_ppo(
     inst_action_space.shape = list(inst_action_space.shape)
     inst_action_space.shape[0] = inst_action_space.shape[0] + 1
     inst_action_space.shape = tuple(inst_action_space.shape)
-    #actor_critic_instinct = Policy(tuple(inst_obs_shape),
-    #                               inst_action_space,
-    #                               init_log_std=log(args.init_sigma),
-    #                               base_kwargs={'recurrent': False})
-    actor_critic_instinct = torch.load("pretrained_instinct.pt")
+    actor_critic_instinct = Policy(tuple(inst_obs_shape),
+                                   inst_action_space,
+                                   init_log_std=log(args.init_sigma),
+                                   base_kwargs={'recurrent': False})
+    #actor_critic_instinct = torch.load("pretrained_instinct.pt")
     actor_critic_policy.to(device)
     actor_critic_instinct.to(device)
 
@@ -237,8 +237,9 @@ def inner_loop_ppo(
 
     fitnesses = []
     best_fitness_so_far = float("-Inf")
-
+    is_instinct_training = False
     for j in range(num_updates):
+        is_instinct_training_old = is_instinct_training
         is_instinct_training = phase_shifter(j, PHASE_LENGTH,
                                              len(TrainPhases)) == TrainPhases.INSTINCT_TRAIN_PHASE.value
         is_instinct_deterministic = not is_instinct_training
@@ -317,12 +318,13 @@ def inner_loop_ppo(
         fits, info = evaluate(EvalActorCritic(actor_critic_policy, actor_critic_instinct), ob_rms, eval_envs, NUM_PROC, reward_cost_combinator, device, instinct_on=inst_on,
                                   visualise=visualize)
         eval_cost = info['cost']
+        eval_hazard_collisions = info['hazard_collisions']
         print(
             f"Step {j}, Fitness {fits.item()}, value_loss = {value_loss}, action_loss = {action_loss}, "
             f"dist_entropy = {dist_entropy}")
         print(
-            f"Step {j}, Cost {eval_cost}, value_loss instinct = {val_loss_i}, action_loss instinct= {action_loss_i}, "
-            f"dist_entropy instinct = {dist_entropy_i}")
+            f"Step {j}, Instinct reward {eval_cost}, value_loss instinct = {val_loss_i}, action_loss instinct= {action_loss_i}, "
+            f"dist_entropy instinct = {dist_entropy_i} hazard_collisions = {eval_hazard_collisions}")
         print("-----------------------------------------------------------------")
 
         # Tensorboard logging
@@ -331,7 +333,8 @@ def inner_loop_ppo(
         log_writer.add_scalar("action loss", action_loss, j)
         log_writer.add_scalar("dist entropy", dist_entropy, j)
 
-        log_writer.add_scalar("cost", eval_cost, j)
+        log_writer.add_scalar("cost/hazard_reward", eval_cost, j)
+        log_writer.add_scalar("cost/hazard_collisions", eval_hazard_collisions, j)
         log_writer.add_scalar("value loss instinct", val_loss_i, j)
         log_writer.add_scalar("action loss instinct", action_loss_i, j)
         log_writer.add_scalar("dist entropy instinct", dist_entropy_i, j)
@@ -341,6 +344,9 @@ def inner_loop_ppo(
             best_fitness_so_far = fits.item()
             torch.save(actor_critic_policy, join(save_dir, "model_rl_policy.pt"))
             torch.save(actor_critic_instinct, join(save_dir, "model_rl_instinct.pt"))
+        if is_instinct_training != is_instinct_training_old:
+            torch.save(actor_critic_policy, join(save_dir, f"model_rl_policy_update_{j}.pt"))
+            torch.save(actor_critic_instinct, join(save_dir, f"model_rl_instinct_update_{j}.pt"))
         torch.save(actor_critic_policy, join(save_dir, "model_rl_policy_latest.pt"))
         torch.save(actor_critic_instinct, join(save_dir, "model_rl_instinct_latest.pt"))
     return (fitnesses[-1]), 0, 0
