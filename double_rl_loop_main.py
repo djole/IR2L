@@ -48,13 +48,17 @@ config = {
     'robot_base': 'xmls/point.xml',
     'sensors_obs': ['accelerometer', 'velocimeter', 'gyro', 'magnetometer'],
     'placements_extents': [-2, -2, 2, 2],
-    'hazards_num': 24,
-    'hazards_locations': [(-1, -1), (1, 1), (-1, 1), (1, -1),
-                          (0.0, 1), (0.0, -1), (1, 0.0), (-1, 0.0),
-                          (-2, -2), (2, -2,), (2, 2), (-2, 2),
-                          (0, -2), (0, 2), (-2, 0), (2, 0),
-                          (-1, -2), (1, 2), (1, -2), (-1, 2),
-                          (-2, -1), (-2, 1), (2, 1), (2, -1)],
+    'hazards_num': 34,
+    'hazards_locations': [(-1, -1), (1, 1), (-1, 1), (1, -1),  # inner corners
+                          (0.0, 1), (0.0, -1), (1, 0.0), (-1, 0.0),  # inner cross
+                          (-2, -2), (2, -2,), (2, 2), (-2, 2),  # outer corners
+                          (0, -2), (0, 2), (-2, 0), (2, 0),  # outer cross
+                          (-1, -2), (1, 2), (1, -2), (-1, 2),  # outer horizontal hole fillers
+                          (-2, -1), (-2, 1), (2, 1), (2, -1),  # outer vertical hole fillers
+                          (-0.5, 1), (-1.5, -1), (1.5, 1), (0.5, -1),  # side vertical path stoppers
+                          (0, 1.5), (0, -1.5), (-1, -0.5), (1, 0.5),  # ide horizontal path stoppers
+                          (0, 0), (0, -0.5)
+                          ],  # center
     'vases_num': 0,
     'constrain_hazards': True,
     'observe_hazards': True,
