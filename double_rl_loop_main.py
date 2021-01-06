@@ -25,7 +25,7 @@ from torch.utils.tensorboard import SummaryWriter
 from enum import Enum
 
 EPISODE_LENGTH = 1000
-HAZARD_PUNISHMENT = 30.0
+HAZARD_PUNISHMENT = 10.0
 ACTIVATION_DISCOUNT = 0.5
 
 config = {
