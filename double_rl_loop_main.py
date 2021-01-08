@@ -48,16 +48,16 @@ config = {
     'robot_base': 'xmls/point.xml',
     'sensors_obs': ['accelerometer', 'velocimeter', 'gyro', 'magnetometer'],
     'placements_extents': [-2, -2, 2, 2],
-    'hazards_num': 34,
+    'hazards_num': 24,
     'hazards_locations': [(-1, -1), (1, 1), (-1, 1), (1, -1),  # inner corners
                           (0.0, 1), (0.0, -1), (1, 0.0), (-1, 0.0),  # inner cross
                           (-2, -2), (2, -2,), (2, 2), (-2, 2),  # outer corners
                           (0, -2), (0, 2), (-2, 0), (2, 0),  # outer cross
                           (-1, -2), (1, 2), (1, -2), (-1, 2),  # outer horizontal hole fillers
                           (-2, -1), (-2, 1), (2, 1), (2, -1),  # outer vertical hole fillers
-                          (-0.5, 1), (-1.5, -1), (1.5, 1), (0.5, -1),  # side vertical path stoppers
-                          (0, 1.5), (0, -1.5), (-1, -0.5), (1, 0.5),  # ide horizontal path stoppers
-                          (0, 0), (0, -0.5)
+                          #(-0.5, 1), (-1.5, -1), (1.5, 1), (0.5, -1),  # side vertical path stoppers
+                          #(0, 1.5), (0, -1.5), (-1, -0.5), (1, 0.5),  # ide horizontal path stoppers
+                          #(0, 0), (0, -0.5),
                           ],  # center
     'vases_num': 0,
     'constrain_hazards': True,
@@ -157,7 +157,7 @@ class EvalActorCritic:
         return self.policy.recurrent_hidden_state_size
 
     def act(self, obs, eval_recurrent_hidden_states, eval_masks, deterministic=True):
-        _, a, _, _ = self.policy.act(obs, eval_recurrent_hidden_states, eval_masks, deterministic=deterministic)
+        _, a, _, _ = self.policy.act(obs, eval_recurrent_hidden_states, eval_masks, deterministic=False)
         i_obs = torch.cat([obs, a], dim=1)
         _, ai, _, _ = self.instinct.act(i_obs, eval_recurrent_hidden_states, eval_masks, deterministic=deterministic)
         total_action, i_control = policy_instinct_combinator(a, ai)
@@ -183,7 +183,7 @@ def inner_loop_ppo(
     eval_envs = make_vec_envs(env_name, np.random.randint(2 ** 32), 1,
                          args.gamma, None, device, allow_early_resets=True, normalize=args.norm_vectors)
 
-    actor_critic_policy = init_default_ppo(envs, log(args.init_sigma)) #torch.load("pretrained_policy.pt")
+    actor_critic_policy = torch.load("pretrained_policy.pt")  # init_default_ppo(envs, log(args.init_sigma))
 
     # Prepare modified observation shape for instinct
     obs_shape = envs.observation_space.shape
@@ -194,11 +194,11 @@ def inner_loop_ppo(
     inst_action_space.shape = list(inst_action_space.shape)
     inst_action_space.shape[0] = inst_action_space.shape[0] + 1
     inst_action_space.shape = tuple(inst_action_space.shape)
-    actor_critic_instinct = Policy(tuple(inst_obs_shape),
-                                   inst_action_space,
-                                   init_log_std=log(args.init_sigma),
-                                   base_kwargs={'recurrent': False})
-    #actor_critic_instinct = torch.load("pretrained_instinct.pt")
+    #actor_critic_instinct = Policy(tuple(inst_obs_shape),
+    #                               inst_action_space,
+    #                               init_log_std=log(args.init_sigma),
+    #                               base_kwargs={'recurrent': False})
+    actor_critic_instinct = torch.load("pretrained_instinct.pt")
     actor_critic_policy.to(device)
     actor_critic_instinct.to(device)
 
