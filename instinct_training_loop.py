@@ -24,7 +24,7 @@ from os.path import join
 from torch.utils.tensorboard import SummaryWriter
 from enum import Enum
 
-from double_rl_loop_main import  ENV_NAME, NUM_PROC,policy_instinct_combinator, reward_cost_combinator, \
+from double_rl_loop_main import ENV_NAME, NUM_PROC, policy_instinct_combinator, reward_cost_combinator, \
     compare_two_models, EvalActorCritic
 
 
