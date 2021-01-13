@@ -48,7 +48,7 @@ config = {
     'robot_base': 'xmls/point.xml',
     'sensors_obs': ['accelerometer', 'velocimeter', 'gyro', 'magnetometer'],
     'placements_extents': [-2, -2, 2, 2],
-    'hazards_num': 24,
+    'hazards_num': 34,
     'hazards_locations': [(-1, -1), (1, 1), (-1, 1), (1, -1),  # inner corners
                           (0.0, 1), (0.0, -1), (1, 0.0), (-1, 0.0),  # inner cross
                           (-2, -2), (2, -2,), (2, 2), (-2, 2),  # outer corners
