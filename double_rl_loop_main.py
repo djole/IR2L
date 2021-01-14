@@ -72,7 +72,7 @@ register(id=ENV_NAME,
 NP_RANDOM, _ = seeding.np_random(None)
 NUM_PROC = 20
 
-PHASE_LENGTH = 200
+PHASE_LENGTH = 1000
 
 # Phase enum
 class TrainPhases(Enum):
