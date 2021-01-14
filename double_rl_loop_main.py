@@ -157,7 +157,7 @@ class EvalActorCritic:
         return self.policy.recurrent_hidden_state_size
 
     def act(self, obs, eval_recurrent_hidden_states, eval_masks, deterministic=True):
-        _, a, _, _ = self.policy.act(obs, eval_recurrent_hidden_states, eval_masks, deterministic=False)
+        _, a, _, _ = self.policy.act(obs, eval_recurrent_hidden_states, eval_masks, deterministic=deterministic)
         i_obs = torch.cat([obs, a], dim=1)
         _, ai, _, _ = self.instinct.act(i_obs, eval_recurrent_hidden_states, eval_masks, deterministic=deterministic)
         total_action, i_control = policy_instinct_combinator(a, ai)
