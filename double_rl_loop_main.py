@@ -183,7 +183,7 @@ def inner_loop_ppo(
     eval_envs = make_vec_envs(env_name, np.random.randint(2 ** 32), 1,
                          args.gamma, None, device, allow_early_resets=True, normalize=args.norm_vectors)
 
-    actor_critic_policy = torch.load("pretrained_policy.pt")  # init_default_ppo(envs, log(args.init_sigma))
+    actor_critic_policy = init_default_ppo(envs, log(args.init_sigma))
 
     # Prepare modified observation shape for instinct
     obs_shape = envs.observation_space.shape
@@ -194,11 +194,10 @@ def inner_loop_ppo(
     inst_action_space.shape = list(inst_action_space.shape)
     inst_action_space.shape[0] = inst_action_space.shape[0] + 1
     inst_action_space.shape = tuple(inst_action_space.shape)
-    #actor_critic_instinct = Policy(tuple(inst_obs_shape),
-    #                               inst_action_space,
-    #                               init_log_std=log(args.init_sigma),
-    #                               base_kwargs={'recurrent': False})
-    actor_critic_instinct = torch.load("pretrained_instinct.pt")
+    actor_critic_instinct = Policy(tuple(inst_obs_shape),
+                                   inst_action_space,
+                                   init_log_std=log(args.init_sigma),
+                                   base_kwargs={'recurrent': False})
     actor_critic_policy.to(device)
     actor_critic_instinct.to(device)
 
