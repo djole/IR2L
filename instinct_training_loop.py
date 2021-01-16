@@ -87,7 +87,6 @@ def instinct_loop_ppo(
         eps=args.eps,
         max_grad_norm=args.max_grad_norm)
 
-
     rollouts_cost = RolloutStorage(num_steps, NUM_PROC,
                                    inst_obs_shape, inst_action_space,
                                    actor_critic_instinct.recurrent_hidden_state_size)
@@ -151,7 +150,6 @@ def instinct_loop_ppo(
         p_after = deepcopy(actor_critic_policy)
         assert compare_two_models(p_before, p_after), "policy changed when it shouldn't"
 
-
         rollouts_cost.after_update()
 
         ob_rms = utils.get_vec_normalize(envs)
@@ -160,17 +158,19 @@ def instinct_loop_ppo(
 
         fits, info = evaluate(EvalActorCritic(actor_critic_policy, actor_critic_instinct), ob_rms, eval_envs, NUM_PROC,
                                     reward_cost_combinator, device, instinct_on=inst_on, visualise=visualize)
-        eval_cost = info['cost']
+        instinct_reward = info['instinct_reward']
+        hazard_collisions = info['hazard_collisions']
         print(
             f"Step {j}, Fitness {fits.item()} ")
         print(
-            f"Step {j}, Cost {eval_cost}, value_loss instinct = {val_loss_i}, action_loss instinct= {action_loss_i}, "
+            f"Step {j}, Cost {instinct_reward}, value_loss instinct = {val_loss_i}, action_loss instinct= {action_loss_i}, "
             f"dist_entropy instinct = {dist_entropy_i}")
         print("-----------------------------------------------------------------")
 
         # Tensorboard logging
-        log_writer.add_scalar("fitness", fits.item(), j)
-        log_writer.add_scalar("cost", eval_cost, j)
+        log_writer.add_scalar("Task reward", fits.item(), j)
+        log_writer.add_scalar("cost/Instinct reward", instinct_reward, j)
+        log_writer.add_scalar("cost/Hazard collisions", hazard_collisions, j)
         log_writer.add_scalar("value loss instinct", val_loss_i, j)
         log_writer.add_scalar("action loss instinct", action_loss_i, j)
         log_writer.add_scalar("dist entropy instinct", dist_entropy_i, j)
@@ -197,7 +197,7 @@ def main():
         args,
         args.lr,
         num_steps=1000,
-        num_updates=4000,
+        num_updates=1000,
         inst_on=False,
         visualize=False,
         save_dir=exp_save_dir

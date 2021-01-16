@@ -48,7 +48,7 @@ config = {
     'robot_base': 'xmls/point.xml',
     'sensors_obs': ['accelerometer', 'velocimeter', 'gyro', 'magnetometer'],
     'placements_extents': [-2, -2, 2, 2],
-    'hazards_num': 34,
+    'hazards_num': 24,
     'hazards_locations': [(-1, -1), (1, 1), (-1, 1), (1, -1),  # inner corners
                           (0.0, 1), (0.0, -1), (1, 0.0), (-1, 0.0),  # inner cross
                           (-2, -2), (2, -2,), (2, 2), (-2, 2),  # outer corners
@@ -320,13 +320,13 @@ def inner_loop_ppo(
 
         fits, info = evaluate(EvalActorCritic(actor_critic_policy, actor_critic_instinct), ob_rms, eval_envs, NUM_PROC, reward_cost_combinator, device, instinct_on=inst_on,
                                   visualise=visualize)
-        eval_cost = info['cost']
+        instinct_reward = info['instinct_reward']
         eval_hazard_collisions = info['hazard_collisions']
         print(
             f"Step {j}, Fitness {fits.item()}, value_loss = {value_loss}, action_loss = {action_loss}, "
             f"dist_entropy = {dist_entropy}")
         print(
-            f"Step {j}, Instinct reward {eval_cost}, value_loss instinct = {val_loss_i}, action_loss instinct= {action_loss_i}, "
+            f"Step {j}, Instinct reward {instinct_reward}, value_loss instinct = {val_loss_i}, action_loss instinct= {action_loss_i}, "
             f"dist_entropy instinct = {dist_entropy_i} hazard_collisions = {eval_hazard_collisions}")
         print("-----------------------------------------------------------------")
 
@@ -336,7 +336,7 @@ def inner_loop_ppo(
         log_writer.add_scalar("action loss", action_loss, j)
         log_writer.add_scalar("dist entropy", dist_entropy, j)
 
-        log_writer.add_scalar("cost/hazard_reward", eval_cost, j)
+        log_writer.add_scalar("cost/instinct_reward", instinct_reward, j)
         log_writer.add_scalar("cost/hazard_collisions", eval_hazard_collisions, j)
         log_writer.add_scalar("value loss instinct", val_loss_i, j)
         log_writer.add_scalar("action loss instinct", action_loss_i, j)

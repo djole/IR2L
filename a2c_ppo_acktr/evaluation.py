@@ -23,7 +23,7 @@ def evaluate(actor_critic, ob_rms, eval_envs, num_processes, reward_cost_combina
     done = False
     cummulative_reward = 0
     hazard_collisions = 0
-    total_cost = 0
+    total_instinct_reward = 0
     while not done:
         with torch.no_grad():
             _, final_action, i_control, _ = actor_critic.act(
@@ -36,7 +36,7 @@ def evaluate(actor_critic, ob_rms, eval_envs, num_processes, reward_cost_combina
         # Obser reward and next obs
         obs, reward, done, infos = eval_envs.step(final_action)
         hazard_collisions += infos[0]['cost']
-        total_reward, cost = reward_cost_combinator(reward, infos, 1, i_control)
+        total_reward, instinct_reward = reward_cost_combinator(reward, infos, 1, i_control)
 
 
         if visualise:
@@ -48,5 +48,5 @@ def evaluate(actor_critic, ob_rms, eval_envs, num_processes, reward_cost_combina
             device=device)
 
         cummulative_reward += total_reward
-        total_cost += cost
-    return cummulative_reward, {'cost': total_cost, 'hazard_collisions': hazard_collisions}
+        total_instinct_reward += instinct_reward
+    return cummulative_reward, {'instinct_reward': total_instinct_reward, 'hazard_collisions': hazard_collisions}
