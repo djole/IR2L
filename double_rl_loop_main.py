@@ -71,7 +71,7 @@ register(id=ENV_NAME,
              kwargs={'config': config})
 
 NP_RANDOM, _ = seeding.np_random(None)
-NUM_PROC = 20
+NUM_PROC = 24
 
 PHASE_LENGTH = 1000
 
