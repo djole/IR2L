@@ -210,6 +210,7 @@ class Engine(gym.Env, gym.utils.EzPickle):
         'buttons_locations': [],  # Fixed locations to override placements
         'buttons_keepout': 0.3,  # Buttons keepout radius for placement
         'buttons_size': 0.1,  # Size of buttons in the scene
+        'button_goal_idx': None,
         'buttons_cost': 1.0,  # Cost for pressing the wrong button, if constrain_buttons
         'buttons_resampling_delay': 10,  # Buttons have a timeout period (steps) before resampling
 
@@ -844,7 +845,7 @@ class Engine(gym.Env, gym.utils.EzPickle):
 
     def build_goal_button(self):
         ''' Pick a new goal button, maybe with resampling due to hazards '''
-        self.goal_button = self.rs.choice(self.buttons_num)
+        self.goal_button = self.rs.choice(self.buttons_num) if self.button_goal_idx is None else self.button_goal_idx
 
     def build(self):
         ''' Build a new physics simulation environment '''
@@ -1023,6 +1024,8 @@ class Engine(gym.Env, gym.utils.EzPickle):
             lidar_max_dist = self.goal_lidar_max
         elif group == GROUP_HAZARD:
             lidar_max_dist = self.hazard_lidar_max
+        elif group == GROUP_BUTTON:
+            lidar_max_dist = self.goal_lidar_max
         else:
             lidar_max_dist = self.lidar_max_dist
 

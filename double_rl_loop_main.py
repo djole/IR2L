@@ -34,7 +34,8 @@ config = {
     'num_steps': EPISODE_LENGTH,
     'hazards_cost': 1,
     'constrain_indicator': True,
-    'observe_goal_lidar': True,
+    'observe_goal_lidar': False,
+    'observe_buttons': True,
     'observe_box_lidar': True,
 
     'lidar_max_dist': 1,
@@ -42,7 +43,9 @@ config = {
     'hazard_lidar_max': 1,
 
     'lidar_num_bins': 16,
-    'task': 'goal',
+    'task': 'button',
+    'buttons_num': 4,
+    'buttons_locations': [(-1.5, -1.5), (1.5, 1.5), (-1.5, 1.5), (1.5, -1.5)],
     'goal_size': 0.3,
     'goal_keepout': 0.305,
     'hazards_size': 0.2,
@@ -70,6 +73,35 @@ ENV_NAME = 'SafexpCustomEnvironmentGoal1-v0'
 register(id=ENV_NAME,
          entry_point='safety_gym_mod.envs.mujoco:Engine',
          kwargs={'config': config})
+
+## Register all goals
+ENV_NAME_0 = 'SafexpCustomEnvironmentButtons0-v0'
+config1 = deepcopy(config)
+config1['button_goal_idx'] = 0
+register(id=ENV_NAME_0,
+         entry_point='safety_gym_mod.envs.mujoco:Engine',
+         kwargs={'config': config1})
+
+ENV_NAME_1 = 'SafexpCustomEnvironmentButtons1-v0'
+config2 = deepcopy(config)
+config2['button_goal_idx'] = 1
+register(id=ENV_NAME_1,
+         entry_point='safety_gym_mod.envs.mujoco:Engine',
+         kwargs={'config': config2})
+
+ENV_NAME_2 = 'SafexpCustomEnvironmentButtons2-v0'
+config3 = deepcopy(config)
+config3['button_goal_idx'] = 2
+register(id=ENV_NAME_2,
+         entry_point='safety_gym_mod.envs.mujoco:Engine',
+         kwargs={'config': config3})
+
+ENV_NAME_3 = 'SafexpCustomEnvironmentButtons3-v0'
+config4 = deepcopy(config)
+config4['button_goal_idx'] = 3
+register(id=ENV_NAME_3,
+         entry_point='safety_gym_mod.envs.mujoco:Engine',
+         kwargs={'config': config4})
 
 NP_RANDOM, _ = seeding.np_random(None)
 NUM_PROC = 24
