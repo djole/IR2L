@@ -25,7 +25,7 @@ from torch.utils.tensorboard import SummaryWriter
 from enum import Enum
 
 from double_rl_loop_main import ENV_NAME, NUM_PROC, policy_instinct_combinator, reward_cost_combinator, \
-    compare_two_models, EvalActorCritic
+    compare_two_models, EvalActorCritic, make_instinct_input
 
 
 def instinct_loop_ppo(
@@ -89,7 +89,8 @@ def instinct_loop_ppo(
                                    actor_critic_policy.recurrent_hidden_state_size)
 
     obs = envs.reset()
-    i_obs = torch.cat([obs, torch.zeros((NUM_PROC, envs.action_space.shape[0]))], dim=1)  # Add zero action to the observation
+    # i_obs = torch.cat([obs, torch.zeros((NUM_PROC, envs.action_space.shape[0]))], dim=1)
+    i_obs = make_instinct_input(obs, torch.zeros((NUM_PROC, envs.action_space.shape[0])))  # Add zero action to the observation
     rollouts.obs[0].copy_(obs)
     rollouts.to(device)
 
@@ -127,7 +128,8 @@ def instinct_loop_ppo(
             # If done then clean the history of observations.
             masks = torch.FloatTensor([[0.0] if done_ else [1.0] for done_ in done])
             bad_masks = torch.FloatTensor([[0.0] if 'bad_transition' in info.keys() else [1.0] for info in infos])
-            i_obs = torch.cat([obs, action], dim=1)
+            # i_obs = torch.cat([obs, action], dim=1)
+            i_obs = make_instinct_input(obs, action)
             rollouts.insert(obs, recurrent_hidden_states, action, action_log_probs,
                                  value, violation_cost, masks, bad_masks)
 

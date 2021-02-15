@@ -14,6 +14,7 @@ from a2c_ppo_acktr.evaluation import evaluate
 from a2c_ppo_acktr.model import init_default_ppo, Policy, custom_weight_init
 from a2c_ppo_acktr.storage import RolloutStorage
 from arguments import get_args
+
 try:
     from exp_dir_util import get_experiment_save_dir
 except:
@@ -67,13 +68,14 @@ config = {
 
 ENV_NAME = 'SafexpCustomEnvironmentGoal1-v0'
 register(id=ENV_NAME,
-             entry_point='safety_gym_mod.envs.mujoco:Engine',
-             kwargs={'config': config})
+         entry_point='safety_gym_mod.envs.mujoco:Engine',
+         kwargs={'config': config})
 
 NP_RANDOM, _ = seeding.np_random(None)
 NUM_PROC = 24
 
 PHASE_LENGTH = 1000
+
 
 # Phase enum
 class TrainPhases(Enum):
@@ -141,12 +143,20 @@ def reward_cost_combinator(reward_list, infos, num_processors, i_control):
         i_reward = reward_list[i_control_idx]
         safety = (1 - infos[i_control_idx]['cost'] * HAZARD_PUNISHMENT)
         instinct_activation = (1 - torch.mean(i_control_on_idx).item())
-        violation_cost[i_control_idx][0] = safety * (1 - instinct_activation * ACTIVATION_DISCOUNT) * (i_reward * REWARD_SCALE)
+        violation_cost[i_control_idx][0] = safety * (1 - instinct_activation * ACTIVATION_DISCOUNT) * (
+                    i_reward * REWARD_SCALE)
 
     # Normalize the cost to the episode length
     violation_cost /= float(EPISODE_LENGTH)
 
     return reward_list, violation_cost
+
+
+def make_instinct_input(obs, action):
+    i_obs = torch.cat([obs, action], dim=1)
+    for i_obs_n in i_obs:  # Blind instinct to goal sensors
+        i_obs_n[3:19] = torch.zeros(16)
+    return i_obs
 
 
 class EvalActorCritic:
@@ -160,7 +170,7 @@ class EvalActorCritic:
 
     def act(self, obs, eval_recurrent_hidden_states, eval_masks, deterministic=True):
         _, a, _, _ = self.policy.act(obs, eval_recurrent_hidden_states, eval_masks, deterministic=deterministic)
-        i_obs = torch.cat([obs, a], dim=1)
+        i_obs = make_instinct_input(obs, a)
         _, ai, _, _ = self.instinct.act(i_obs, eval_recurrent_hidden_states, eval_masks, deterministic=deterministic)
         total_action, i_control = policy_instinct_combinator(a, ai)
         return None, total_action, i_control, None
@@ -179,11 +189,11 @@ def inner_loop_ppo(
     log_writer = SummaryWriter(save_dir, max_queue=1, filename_suffix="log")
     device = torch.device("cpu")
 
-    env_name = ENV_NAME #"Safexp-PointGoal1-v0"
+    env_name = ENV_NAME  # "Safexp-PointGoal1-v0"
     envs = make_vec_envs(env_name, np.random.randint(2 ** 32), NUM_PROC,
                          args.gamma, None, device, allow_early_resets=True, normalize=args.norm_vectors)
     eval_envs = make_vec_envs(env_name, np.random.randint(2 ** 32), 1,
-                         args.gamma, None, device, allow_early_resets=True, normalize=args.norm_vectors)
+                              args.gamma, None, device, allow_early_resets=True, normalize=args.norm_vectors)
 
     actor_critic_policy = init_default_ppo(envs, log(args.init_sigma))
 
@@ -234,7 +244,8 @@ def inner_loop_ppo(
                                    actor_critic_instinct.recurrent_hidden_state_size)
 
     obs = envs.reset()
-    i_obs = torch.cat([obs, torch.zeros((NUM_PROC, envs.action_space.shape[0]))], dim=1)  # Add zero action to the observation
+    i_obs = torch.cat([obs, torch.zeros((NUM_PROC, envs.action_space.shape[0]))],
+                      dim=1)  # Add zero action to the observation
     rollouts_rewards.obs[0].copy_(obs)
     rollouts_rewards.to(device)
     rollouts_cost.obs[0].copy_(i_obs)
@@ -312,7 +323,6 @@ def inner_loop_ppo(
             p_after = deepcopy(agent_policy.actor_critic)
             assert compare_two_models(p_before, p_after), "policy changed when it shouldn't"
 
-
         rollouts_rewards.after_update()
         rollouts_cost.after_update()
 
@@ -320,8 +330,9 @@ def inner_loop_ppo(
         if ob_rms is not None:
             ob_rms = ob_rms.ob_rms
 
-        fits, info = evaluate(EvalActorCritic(actor_critic_policy, actor_critic_instinct), ob_rms, eval_envs, NUM_PROC, reward_cost_combinator, device, instinct_on=inst_on,
-                                  visualise=visualize)
+        fits, info = evaluate(EvalActorCritic(actor_critic_policy, actor_critic_instinct), ob_rms, eval_envs, NUM_PROC,
+                              reward_cost_combinator, device, instinct_on=inst_on,
+                              visualise=visualize)
         instinct_reward = info['instinct_reward']
         eval_hazard_collisions = info['hazard_collisions']
         print(
