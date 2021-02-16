@@ -51,6 +51,8 @@ config = {
     'hazards_size': 0.2,
     'hazards_keepout': 0.18,
     'robot_base': 'xmls/point.xml',
+    'robot_locations': [(0, 0)],
+    'robot_rot': 0 * 3.1415,
     'sensors_obs': ['accelerometer', 'velocimeter', 'gyro', 'magnetometer'],
     'placements_extents': [-2, -2, 2, 2],
     'hazards_num': 24,
