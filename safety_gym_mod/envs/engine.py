@@ -127,6 +127,7 @@ class Engine(gym.Env, gym.utils.EzPickle):
         'observe_goal_dist': False,  # Observe the distance to the goal
         'observe_goal_comp': False,  # Observe a compass vector to the goal
         'observe_goal_lidar': False,  # Observe the goal with a lidar sensor
+        'observe_button_goal_lidar': False,  # Observe the button goal on a separate lidar sensor
         'observe_box_comp': False,  # Observe the box with a compass
         'observe_box_lidar': False,  # Observe the box with a lidar
         'observe_circle': False,  # Observe the origin with a lidar
@@ -354,13 +355,18 @@ class Engine(gym.Env, gym.utils.EzPickle):
         if self.task in ['goal', 'push']:
             return self.data.get_body_xpos('goal').copy()
         elif self.task == 'button':
-            return self.data.get_body_xpos(f'button{self.goal_button}').copy()
+            return np.zeros(2)  # self.data.get_body_xpos(f'button{self.goal_button}').copy()
         elif self.task == 'circle':
             return ORIGIN_COORDINATES
         elif self.task == 'none':
             return np.zeros(2)  # Only used for screenshots
         else:
             raise ValueError(f'Invalid task {self.task}')
+
+    @property
+    def button_goal_pos(self):
+        return self.data.get_body_xpos(f'button{self.goal_button}').copy()
+
 
     @property
     def box_pos(self):
@@ -444,11 +450,11 @@ class Engine(gym.Env, gym.utils.EzPickle):
                     obs_space_dict[sensor] = gym.spaces.Box(-np.inf, np.inf, (1,), dtype=np.float32)
                 for sensor in self.robot.ballquat_names:
                     obs_space_dict[sensor] = gym.spaces.Box(-np.inf, np.inf, (4,), dtype=np.float32)
-        if self.task == 'push':
-            if self.observe_box_comp:
-                obs_space_dict['box_compass'] = gym.spaces.Box(-1.0, 1.0, (self.compass_shape,), dtype=np.float32)
-            if self.observe_box_lidar:
-                obs_space_dict['box_lidar'] = gym.spaces.Box(0.0, 1.0, (self.lidar_num_bins,), dtype=np.float32)
+        #if self.task == 'push':
+        if self.observe_box_comp:
+            obs_space_dict['box_compass'] = gym.spaces.Box(-1.0, 1.0, (self.compass_shape,), dtype=np.float32)
+        if self.observe_box_lidar:
+            obs_space_dict['box_lidar'] = gym.spaces.Box(0.0, 1.0, (self.lidar_num_bins,), dtype=np.float32)
         if self.observe_goal_dist:
             obs_space_dict['goal_dist'] = gym.spaces.Box(0.0, 1.0, (1,), dtype=np.float32)
         if self.observe_goal_comp:
@@ -471,6 +477,8 @@ class Engine(gym.Env, gym.utils.EzPickle):
             obs_space_dict['pillars_lidar'] = gym.spaces.Box(0.0, 1.0, (self.lidar_num_bins,), dtype=np.float32)
         if self.buttons_num and self.observe_buttons:
             obs_space_dict['buttons_lidar'] = gym.spaces.Box(0.0, 1.0, (self.lidar_num_bins,), dtype=np.float32)
+        if self.observe_button_goal_lidar:
+            obs_space_dict['button_goal_lidar'] = gym.spaces.Box(0.0, 1.0, (self.lidar_num_bins,), dtype=np.float32)
         if self.observe_qpos:
             obs_space_dict['qpos'] = gym.spaces.Box(-np.inf, np.inf, (self.robot.nq,), dtype=np.float32)
         if self.observe_qvel:
@@ -533,12 +541,14 @@ class Engine(gym.Env, gym.utils.EzPickle):
         placements.update(self.placements_dict_from_object('robot'))
         placements.update(self.placements_dict_from_object('wall'))
 
-        if self.task in ['goal', 'push']:
+        if self.task in ['goal', 'push', 'button']:
             placements.update(self.placements_dict_from_object('goal'))
-        if self.task == 'push':
             placements.update(self.placements_dict_from_object('box'))
-        if self.task == 'button' or self.buttons_num: #self.constrain_buttons:
             placements.update(self.placements_dict_from_object('button'))
+        #if self.task == 'push':
+        #    placements.update(self.placements_dict_from_object('box'))
+        #if self.task == 'button' or self.buttons_num: #self.constrain_buttons:
+        #    placements.update(self.placements_dict_from_object('button'))
         if self.hazards_num: #self.constrain_hazards:
             placements.update(self.placements_dict_from_object('hazard'))
         if self.vases_num: #self.constrain_vases:
@@ -688,16 +698,16 @@ class Engine(gym.Env, gym.utils.EzPickle):
                           'group': GROUP_GREMLIN,
                           'rgba': COLOR_GREMLIN}
                 world_config['objects'][name] = object
-        if self.task == 'push':
-            object = {'name': 'box',
-                      'type': 'box',
-                      'size': np.ones(3) * self.box_size,
-                      'pos': np.r_[self.layout['box'], self.box_size],
-                      'rot': self.random_rot(),
-                      'density': self.box_density,
-                      'group': GROUP_BOX,
-                      'rgba': COLOR_BOX}
-            world_config['objects']['box'] = object
+        #if self.task == 'push':
+        #    object = {'name': 'box',
+        #              'type': 'box',
+        #              'size': np.ones(3) * self.box_size,
+        #              'pos': np.r_[self.layout['box'], self.box_size],
+        #              'rot': self.random_rot(),
+        #              'density': self.box_density,
+        #              'group': GROUP_BOX,
+        #              'rgba': COLOR_BOX}
+        #    world_config['objects']['box'] = object
 
         # Extra geoms (immovable objects) to add to the scene
         world_config['geoms'] = {}
@@ -712,6 +722,15 @@ class Engine(gym.Env, gym.utils.EzPickle):
                     'group': GROUP_GOAL,
                     'rgba': COLOR_GOAL * [1, 1, 1, 0.25]}  # transparent
             world_config['geoms']['goal'] = geom
+            object = {'name': 'box',
+                      'type': 'box',
+                      'size': np.ones(3) * self.box_size,
+                      'pos': np.r_[self.layout['box'], self.box_size],
+                      'rot': self.random_rot(),
+                      'density': self.box_density,
+                      'group': GROUP_BOX,
+                      'rgba': COLOR_BOX}
+            world_config['objects']['box'] = object
         if self.hazards_num:
             for i in range(self.hazards_num):
                 name = f'hazard{i}'
@@ -796,9 +815,11 @@ class Engine(gym.Env, gym.utils.EzPickle):
         ''' Build a new goal position, maybe with resampling due to hazards '''
         if self.task == 'goal':
             self.build_goal_position()
+            self.build_goal_button()
             self.last_dist_goal = self.dist_goal()
         elif self.task == 'push':
             self.build_goal_position()
+            self.build_goal_button()
             self.last_dist_goal = self.dist_goal()
             self.last_dist_box = self.dist_box()
             self.last_box_goal = self.dist_box_goal()
@@ -1065,12 +1086,14 @@ class Engine(gym.Env, gym.utils.EzPickle):
             obs['goal_compass'] = self.obs_compass(self.goal_pos)
         if self.observe_goal_lidar:
             obs['goal_lidar'] = self.obs_lidar([self.goal_pos], GROUP_GOAL)
-        if self.task == 'push':
+        if self.observe_button_goal_lidar:
+            obs['button_goal_lidar'] = self.obs_lidar([self.button_goal_pos], GROUP_GOAL)
+        #if self.task == 'push':
             box_pos = self.box_pos
-            if self.observe_box_comp:
-                obs['box_compass'] = self.obs_compass(box_pos)
-            if self.observe_box_lidar:
-                obs['box_lidar'] = self.obs_lidar([box_pos], GROUP_BOX)
+        if self.observe_box_comp:
+            obs['box_compass'] = self.obs_compass(box_pos)
+        if self.observe_box_lidar:
+            obs['box_lidar'] = self.obs_lidar([box_pos], GROUP_BOX)
         if self.task == 'circle' and self.observe_circle:
             obs['circle_lidar'] = self.obs_lidar([self.goal_pos], GROUP_CIRCLE)
         if self.observe_freejoint:
@@ -1476,6 +1499,9 @@ class Engine(gym.Env, gym.utils.EzPickle):
             if 'buttons_lidar' in self.obs_space_dict:
                 self.render_lidar(self.buttons_pos, COLOR_BUTTON, offset, GROUP_BUTTON)
                 offset += self.render_lidar_offset_delta
+            if 'button_goal_lidar' in self.obs_space_dict:
+                self.render_lidar([self.button_goal_pos], COLOR_BUTTON, offset, GROUP_BUTTON)
+                offset += self.render_lidar_offset_delta
             if 'circle_lidar' in self.obs_space_dict:
                 self.render_lidar([ORIGIN_COORDINATES], COLOR_CIRCLE, offset, GROUP_CIRCLE)
                 offset += self.render_lidar_offset_delta
@@ -1497,7 +1523,7 @@ class Engine(gym.Env, gym.utils.EzPickle):
 
         # Add goal marker
         if self.task == 'button':
-            self.render_area(self.goal_pos, self.buttons_size * 2, COLOR_BUTTON, 'goal', alpha=0.1)
+            self.render_area(self.button_goal_pos, self.buttons_size * 2, COLOR_BUTTON, 'goal', alpha=0.1)
 
         # Add indicator for nonzero cost
         if self._cost.get('cost', 0) > 0:

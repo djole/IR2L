@@ -58,7 +58,13 @@ def instinct_loop_ppo(
     inst_action_space.shape = list(inst_action_space.shape)
     inst_action_space.shape[0] = inst_action_space.shape[0] + 1
     inst_action_space.shape = tuple(inst_action_space.shape)
-    actor_critic_instinct = torch.load("pretrained_instinct.pt")
+    # actor_critic_instinct = torch.load("pretrained_instinct.pt")
+    actor_critic_instinct = Policy(tuple(inst_obs_shape),
+                                   inst_action_space,
+                                   init_log_std=log(args.init_sigma),
+                                   base_kwargs={'recurrent': False})
+
+
     actor_critic_policy.to(device)
     actor_critic_instinct.to(device)
 

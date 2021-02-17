@@ -34,16 +34,18 @@ config = {
     'num_steps': EPISODE_LENGTH,
     'hazards_cost': 1,
     'constrain_indicator': True,
-    'observe_goal_lidar': False,
+    'observe_goal_lidar': True,
     'observe_buttons': True,
     'observe_box_lidar': True,
+    'observe_circle': True,  # Observe the origin with a lidar
+    'observe_button_goal_lidar': True,
 
     'lidar_max_dist': 1,
     'goal_lidar_max': 7,
     'hazard_lidar_max': 1,
 
     'lidar_num_bins': 16,
-    'task': 'button',
+    'task': 'goal',  # Task definition
     'buttons_num': 4,
     'buttons_locations': [(-1.5, -1.5), (1.5, 1.5), (-1.5, 1.5), (1.5, -1.5)],
     'goal_size': 0.3,
@@ -164,7 +166,7 @@ def policy_instinct_combinator(policy_actions, instinct_outputs):
 
     # Combine the two controlled outputs
     combined_action = ctrl_instinct_actions + ctrl_policy_actions
-    return combined_action, instinct_control
+    return policy_actions, instinct_control
 
 
 def reward_cost_combinator(reward_list, infos, num_processors, i_control):
@@ -189,7 +191,7 @@ def reward_cost_combinator(reward_list, infos, num_processors, i_control):
 def make_instinct_input(obs, action):
     i_obs = torch.cat([obs, action], dim=1)
     for i_obs_n in i_obs:  # Blind instinct to goal sensors
-        i_obs_n[3:19] = torch.zeros(16)
+        i_obs_n[51:67] = torch.zeros(16)
     return i_obs
 
 
