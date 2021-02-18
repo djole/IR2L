@@ -919,6 +919,10 @@ class Engine(gym.Env, gym.utils.EzPickle):
         ''' Return the distance from the robot to the goal XY position '''
         return self.dist_xy(self.goal_pos)
 
+    def dist_button_goal(self):
+        ''' Return the distance from the robot to the BUTTON goal XY position '''
+        return self.dist_xy(self.button_goal_pos)
+
     def dist_box(self):
         ''' Return the distance from the robot to the box (in XY plane only) '''
         assert self.task == 'push', f'invalid task {self.task}'
@@ -1348,7 +1352,7 @@ class Engine(gym.Env, gym.utils.EzPickle):
         reward = 0.0
         # Distance from robot to goal
         if self.task in ['goal', 'button']:
-            dist_goal = self.dist_goal()
+            dist_goal = self.dist_goal() if self.task == 'goal' else self.dist_button_goal()
             reward += (self.last_dist_goal - dist_goal) * self.reward_distance
             self.last_dist_goal = dist_goal
         # Distance from robot to box
