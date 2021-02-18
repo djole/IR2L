@@ -281,7 +281,7 @@ class CNNBase(NNBase):
 
 
 class MLPBase(NNBase):
-    def __init__(self, num_inputs, recurrent=False, hidden_size=256):
+    def __init__(self, num_inputs, recurrent=False, hidden_size=512):
         super(MLPBase, self).__init__(recurrent, num_inputs, hidden_size)
 
         if recurrent:
@@ -292,10 +292,12 @@ class MLPBase(NNBase):
 
         self.actor = nn.Sequential(
             nn.Linear(num_inputs, hidden_size), nn.Tanh(),
+            nn.Linear(hidden_size, hidden_size), nn.Tanh(),
             nn.Linear(hidden_size, hidden_size), nn.Tanh())
 
         self.critic = nn.Sequential(
             nn.Linear(num_inputs, hidden_size), nn.Tanh(),
+            nn.Linear(hidden_size, hidden_size), nn.Tanh(),
             nn.Linear(hidden_size, hidden_size), nn.Tanh())
 
         self.critic_linear = nn.Linear(hidden_size, 1)
