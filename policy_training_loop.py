@@ -7,6 +7,7 @@ from gym.envs.registration import register
 from gym.utils import seeding
 import safety_gym_mod
 import matplotlib.pyplot as plt
+import pickle
 
 from a2c_ppo_acktr import algo, utils
 from a2c_ppo_acktr.envs import make_vec_envs
@@ -186,6 +187,7 @@ def instinct_loop_ppo(
             torch.save(actor_critic_policy, join(save_dir, "model_rl_policy.pt"))
         torch.save(actor_critic_instinct, join(save_dir, "model_rl_instinct_latest.pt"))
         torch.save(actor_critic_policy, join(save_dir, "model_rl_policy_latest.pt"))
+        pickle.dump(ob_rms, open(join(save_dir, "ob_rms.p"), "wb"))
     return (fitnesses[-1]), 0, 0
 
 
