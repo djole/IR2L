@@ -138,7 +138,7 @@ def instinct_loop_ppo(
             # i_obs = torch.cat([obs, action], dim=1)
             i_obs = make_instinct_input(obs, action)
             rollouts.insert(obs, recurrent_hidden_states, action, action_log_probs,
-                                 value, violation_cost, masks, bad_masks)
+                                 value, reward, masks, bad_masks)
 
         with torch.no_grad():
             next_value_policy = actor_critic_policy.get_value(rollouts.obs[-1],
