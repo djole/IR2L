@@ -166,7 +166,7 @@ def policy_instinct_combinator(policy_actions, instinct_outputs):
 
     # Combine the two controlled outputs
     combined_action = ctrl_instinct_actions + ctrl_policy_actions
-    return policy_actions, instinct_control
+    return combined_action, instinct_control
 
 
 def reward_cost_combinator(reward_list, infos, num_processors, i_control):
