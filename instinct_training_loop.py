@@ -1,4 +1,5 @@
 from math import log
+import pickle
 
 import torch
 import numpy as np
@@ -103,6 +104,7 @@ def instinct_loop_ppo(
     recurrent_hidden_states = torch.zeros(num_steps + 1, NUM_PROC, actor_critic_policy.recurrent_hidden_state_size)
 
     for j in range(num_updates):
+        training_collisions_current_update = 0
         for step in range(num_steps):
             # Sample actions
             with torch.no_grad():
@@ -125,6 +127,7 @@ def instinct_loop_ppo(
             obs, reward, done, infos = envs.step(final_action)
             #envs.render()
 
+            training_collisions_current_update += sum([i['cost'] for i in infos])
             reward, violation_cost = reward_cost_combinator(reward, infos, NUM_PROC, i_control)
 
             # If done then clean the history of observations.
@@ -169,6 +172,7 @@ def instinct_loop_ppo(
 
         # Tensorboard logging
         log_writer.add_scalar("Task reward", fits.item(), j)
+        log_writer.add_scalar("cost/Training hazard collisions", training_collisions_current_update, j)
         log_writer.add_scalar("cost/Instinct reward", instinct_reward, j)
         log_writer.add_scalar("cost/Hazard collisions", hazard_collisions, j)
         log_writer.add_scalar("value loss instinct", val_loss_i, j)
@@ -180,6 +184,7 @@ def instinct_loop_ppo(
             best_fitness_so_far = fits.item()
             torch.save(actor_critic_instinct, join(save_dir, "model_rl_instinct.pt"))
         torch.save(actor_critic_instinct, join(save_dir, "model_rl_instinct_latest.pt"))
+        pickle.dump(ob_rms, open(join(save_dir, "ob_rms.pt"), "wb"))
     return (fitnesses[-1]), 0, 0
 
 
@@ -196,8 +201,8 @@ def main():
     instinct_loop_ppo(
         args,
         args.lr,
-        num_steps=1000,
-        num_updates=1000,
+        num_steps=9000,
+        num_updates=5000,
         inst_on=False,
         visualize=False,
         save_dir=exp_save_dir
