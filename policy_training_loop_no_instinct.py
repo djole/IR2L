@@ -26,19 +26,6 @@ from double_rl_loop_main import ENV_NAME_0, NUM_PROC, reward_cost_combinator, HA
     EPISODE_LENGTH
 
 
-def modify_reward_to_baseline(reward_list, infos):
-    modded_reward_list = []
-    # Add a regularization clause to discourage instinct to activate if not necessary
-    for reward_idx in range(len(reward_list)):
-        i_reward = reward_list[reward_idx]
-        safety = (1 - infos[reward_idx]['cost'] * HAZARD_PUNISHMENT)
-        modded_reward_list.append([i_reward - (infos[reward_idx]['cost']*HAZARD_PUNISHMENT)])
-
-    modded_reward_list = torch.tensor(modded_reward_list)
-
-    return modded_reward_list
-
-
 def instinct_loop_ppo(
         args,
         learning_rate,
@@ -104,7 +91,7 @@ def instinct_loop_ppo(
             obs, reward, done, infos = envs.step(action)
             #envs.render()
             training_collisions_current_update += sum([i['cost'] for i in infos])
-            modded_reward = modify_reward_to_baseline(reward, infos)
+            modded_reward, _ = reward_cost_combinator(reward, infos, NUM_PROC, torch.tensor([[0.0]] * NUM_PROC))
 
             # If done then clean the history of observations.
             masks = torch.FloatTensor([[0.0] if done_ else [1.0] for done_ in done])

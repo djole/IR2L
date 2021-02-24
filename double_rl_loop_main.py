@@ -27,6 +27,7 @@ from enum import Enum
 
 EPISODE_LENGTH = 1000
 HAZARD_PUNISHMENT = 10.0
+HAZARD_PUNISHMENT_4_POLICY = 1.0
 ACTIVATION_DISCOUNT = 0.3
 REWARD_SCALE = 50.0
 
@@ -184,7 +185,7 @@ def reward_cost_combinator(reward_list, infos, num_processors, i_control):
         violation_cost[i_control_idx][0] = safety * (1 - instinct_activation * ACTIVATION_DISCOUNT) * (
                     i_reward * REWARD_SCALE)
 
-        modded_reward_list.append([i_reward - (infos[i_control_idx]['cost']*HAZARD_PUNISHMENT)])
+        modded_reward_list.append([i_reward - (infos[i_control_idx]['cost']*HAZARD_PUNISHMENT_4_POLICY)])
 
     # Normalize the cost to the episode length
     violation_cost /= float(EPISODE_LENGTH)
