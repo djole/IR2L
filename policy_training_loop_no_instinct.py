@@ -32,11 +32,9 @@ def modify_reward_to_baseline(reward_list, infos):
     for reward_idx in range(len(reward_list)):
         i_reward = reward_list[reward_idx]
         safety = (1 - infos[reward_idx]['cost'] * HAZARD_PUNISHMENT)
-        modded_reward_list.append([safety * i_reward])
+        modded_reward_list.append([safety + i_reward])
 
     modded_reward_list = torch.tensor(modded_reward_list)
-    # Normalize the cost to the episode length
-    modded_reward_list /= float(EPISODE_LENGTH)
 
     return modded_reward_list
 
