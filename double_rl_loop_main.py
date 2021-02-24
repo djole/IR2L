@@ -80,32 +80,34 @@ register(id=ENV_NAME,
 
 ## Register all goals
 ENV_NAME_0 = 'SafexpCustomEnvironmentButtons0-v0'
-config1 = deepcopy(config)
-config1['button_goal_idx'] = 0
+config0 = deepcopy(config)
+config0['button_goal_idx'] = 0
+config0['task'] = "button"
 register(id=ENV_NAME_0,
+         entry_point='safety_gym_mod.envs.mujoco:Engine',
+         kwargs={'config': config0})
+
+ENV_NAME_1 = 'SafexpCustomEnvironmentButtons1-v0'
+config1 = deepcopy(config)
+config1['button_goal_idx'] = 1
+config1['task'] = "button"
+register(id=ENV_NAME_1,
          entry_point='safety_gym_mod.envs.mujoco:Engine',
          kwargs={'config': config1})
 
-ENV_NAME_1 = 'SafexpCustomEnvironmentButtons1-v0'
+ENV_NAME_2 = 'SafexpCustomEnvironmentButtons2-v0'
 config2 = deepcopy(config)
-config2['button_goal_idx'] = 1
-register(id=ENV_NAME_1,
+config2['button_goal_idx'] = 2
+register(id=ENV_NAME_2,
          entry_point='safety_gym_mod.envs.mujoco:Engine',
          kwargs={'config': config2})
 
-ENV_NAME_2 = 'SafexpCustomEnvironmentButtons2-v0'
-config3 = deepcopy(config)
-config3['button_goal_idx'] = 2
-register(id=ENV_NAME_2,
-         entry_point='safety_gym_mod.envs.mujoco:Engine',
-         kwargs={'config': config3})
-
 ENV_NAME_3 = 'SafexpCustomEnvironmentButtons3-v0'
-config4 = deepcopy(config)
-config4['button_goal_idx'] = 3
+config3 = deepcopy(config)
+config3['button_goal_idx'] = 3
 register(id=ENV_NAME_3,
          entry_point='safety_gym_mod.envs.mujoco:Engine',
-         kwargs={'config': config4})
+         kwargs={'config': config3})
 
 NP_RANDOM, _ = seeding.np_random(None)
 NUM_PROC = 24
