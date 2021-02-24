@@ -174,7 +174,7 @@ def policy_instinct_combinator(policy_actions, instinct_outputs):
 def reward_cost_combinator(reward_list, infos, num_processors, i_control):
     # Count the cost
     violation_cost = torch.Tensor([[0]] * num_processors)
-
+    modded_reward_list = []
     # Add a regularization clause to discourage instinct to activate if not necessary
     for i_control_idx in range(len(i_control)):
         i_control_on_idx = i_control[i_control_idx]
@@ -183,11 +183,13 @@ def reward_cost_combinator(reward_list, infos, num_processors, i_control):
         instinct_activation = (1 - torch.mean(i_control_on_idx).item())
         violation_cost[i_control_idx][0] = safety * (1 - instinct_activation * ACTIVATION_DISCOUNT) * (
                     i_reward * REWARD_SCALE)
+        modded_reward_list.append([safety * i_reward])
 
     # Normalize the cost to the episode length
     violation_cost /= float(EPISODE_LENGTH)
+    modded_reward_list /= float(EPISODE_LENGTH)
 
-    return reward_list, violation_cost
+    return modded_reward_list, violation_cost
 
 
 def make_instinct_input(obs, action):
