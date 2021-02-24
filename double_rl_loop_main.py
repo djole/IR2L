@@ -187,6 +187,7 @@ def reward_cost_combinator(reward_list, infos, num_processors, i_control):
 
     # Normalize the cost to the episode length
     violation_cost /= float(EPISODE_LENGTH)
+    modded_reward_list = torch.tensor(modded_reward_list)
     modded_reward_list /= float(EPISODE_LENGTH)
 
     return modded_reward_list, violation_cost

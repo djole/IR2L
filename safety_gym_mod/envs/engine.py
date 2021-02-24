@@ -711,7 +711,7 @@ class Engine(gym.Env, gym.utils.EzPickle):
 
         # Extra geoms (immovable objects) to add to the scene
         world_config['geoms'] = {}
-        if self.task in ['goal', 'push']:
+        if self.task in ['goal', 'push', 'button']:
             geom = {'name': 'goal',
                     'size': [self.goal_size, self.goal_size / 2],
                     'pos': np.r_[self.layout['goal'], self.goal_size / 2 + 1e-2],
