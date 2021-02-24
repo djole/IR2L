@@ -168,7 +168,7 @@ def policy_instinct_combinator(policy_actions, instinct_outputs):
 
     # Combine the two controlled outputs
     combined_action = ctrl_instinct_actions + ctrl_policy_actions
-    return policy_actions, instinct_control
+    return combined_action, instinct_control
 
 
 def reward_cost_combinator(reward_list, infos, num_processors, i_control):
@@ -184,7 +184,7 @@ def reward_cost_combinator(reward_list, infos, num_processors, i_control):
         violation_cost[i_control_idx][0] = safety * (1 - instinct_activation * ACTIVATION_DISCOUNT) * (
                     i_reward * REWARD_SCALE)
 
-        modded_reward_list.append([safety + i_reward])
+        modded_reward_list.append([i_reward - (infos[i_control_idx]['cost']*HAZARD_PUNISHMENT)])
 
     # Normalize the cost to the episode length
     violation_cost /= float(EPISODE_LENGTH)
