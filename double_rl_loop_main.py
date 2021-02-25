@@ -197,8 +197,8 @@ def reward_cost_combinator(reward_list, infos, num_processors, i_control):
 
 def make_instinct_input(obs, action):
     i_obs = torch.cat([obs, action], dim=1)
-    for i_obs_n in i_obs:  # Blind instinct to goal sensors
-        i_obs_n[51:67] = torch.zeros(16)
+    # for i_obs_n in i_obs:  # Blind instinct to goal sensors
+    #     i_obs_n[51:67] = torch.zeros(16)
     return i_obs
 
 
