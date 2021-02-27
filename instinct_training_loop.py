@@ -113,7 +113,7 @@ def instinct_loop_ppo(
                     obs,
                     recurrent_hidden_states,
                     masks,
-                    deterministic=True
+                    deterministic=False
                 )
                 instinct_value, instinct_action, instinct_outputs_log_prob, instinct_recurrent_hidden_states = actor_critic_instinct.act(
                     rollouts_cost.obs[step],
@@ -192,7 +192,7 @@ def main():
     args = get_args()
     print("start the train function")
 
-    args.init_sigma = 0.6
+    args.init_sigma = 0.7
     args.lr = 0.001
 
     # plot_weight_histogram(parameters)
