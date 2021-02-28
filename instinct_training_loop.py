@@ -184,6 +184,7 @@ def instinct_loop_ppo(
             best_fitness_so_far = fits.item()
             torch.save(actor_critic_instinct, join(save_dir, "model_rl_instinct.pt"))
         torch.save(actor_critic_instinct, join(save_dir, "model_rl_instinct_latest.pt"))
+        torch.save(actor_critic_instinct, join(save_dir, f"model_rl_instinct_latest_update_{j}.pt"))
         pickle.dump(ob_rms, open(join(save_dir, "ob_rms.pt"), "wb"))
     return (fitnesses[-1]), 0, 0
 
