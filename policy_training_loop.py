@@ -25,7 +25,7 @@ from os.path import join
 from torch.utils.tensorboard import SummaryWriter
 from enum import Enum
 
-from double_rl_loop_main import ENV_NAME_1, NUM_PROC, policy_instinct_combinator, reward_cost_combinator, \
+from double_rl_loop_main import ENV_NAME_0, NUM_PROC, policy_instinct_combinator, reward_cost_combinator, \
     compare_two_models, EvalActorCritic, make_instinct_input
 
 
@@ -42,7 +42,7 @@ def instinct_loop_ppo(
     log_writer = SummaryWriter(save_dir, max_queue=1, filename_suffix="log")
     device = torch.device("cpu")
 
-    env_name = ENV_NAME_1 #"Safexp-PointGoal1-v0"
+    env_name = ENV_NAME_0 #"Safexp-PointGoal1-v0"
     envs = make_vec_envs(env_name, np.random.randint(2 ** 32), NUM_PROC,
                          args.gamma, None, device, allow_early_resets=True, normalize=args.norm_vectors)
     eval_envs = make_vec_envs(env_name, np.random.randint(2 ** 32), 1,
@@ -59,26 +59,10 @@ def instinct_loop_ppo(
     inst_action_space.shape = list(inst_action_space.shape)
     inst_action_space.shape[0] = inst_action_space.shape[0] + 1
     inst_action_space.shape = tuple(inst_action_space.shape)
-    # actor_critic_instinct = torch.load("pretrained_instinct.pt")
-    actor_critic_instinct = Policy(tuple(inst_obs_shape),
-                                   inst_action_space,
-                                   init_log_std=log(args.init_sigma),
-                                   base_kwargs={'recurrent': False})
-
+    actor_critic_instinct = torch.load("pretrained_instinct.pt")
 
     actor_critic_policy.to(device)
     actor_critic_instinct.to(device)
-
-    #agent_policy = algo.PPO(
-    #    actor_critic_policy,
-    #    args.clip_param,
-    #    args.ppo_epoch,
-    #    args.num_mini_batch,
-    #    args.value_loss_coef,
-    #    args.entropy_coef,
-    #    lr=learning_rate,
-    #    eps=args.eps,
-    #    max_grad_norm=args.max_grad_norm)
 
     agent_policy = algo.PPO(
         actor_critic_policy,
@@ -96,7 +80,6 @@ def instinct_loop_ppo(
                                    actor_critic_policy.recurrent_hidden_state_size)
 
     obs = envs.reset()
-    # i_obs = torch.cat([obs, torch.zeros((NUM_PROC, envs.action_space.shape[0]))], dim=1)
     i_obs = make_instinct_input(obs, torch.zeros((NUM_PROC, envs.action_space.shape[0])))  # Add zero action to the observation
     rollouts.obs[0].copy_(obs)
     rollouts.to(device)
@@ -132,7 +115,7 @@ def instinct_loop_ppo(
             #envs.render()
 
             training_collisions_current_update += sum([i['cost'] for i in infos])
-            reward, violation_cost = reward_cost_combinator(reward, infos, NUM_PROC, i_control)
+            modded_reward, violation_cost = reward_cost_combinator(reward, infos, NUM_PROC, i_control)
 
             # If done then clean the history of observations.
             masks = torch.FloatTensor([[0.0] if done_ else [1.0] for done_ in done])
@@ -140,7 +123,7 @@ def instinct_loop_ppo(
             # i_obs = torch.cat([obs, action], dim=1)
             i_obs = make_instinct_input(obs, action)
             rollouts.insert(obs, recurrent_hidden_states, action, action_log_probs,
-                                 value, reward, masks, bad_masks)
+                                 value, modded_reward, masks, bad_masks)
 
         with torch.no_grad():
             next_value_policy = actor_critic_policy.get_value(rollouts.obs[-1],
@@ -178,7 +161,7 @@ def instinct_loop_ppo(
         log_writer.add_scalar("Task reward", fits.item(), j)
         log_writer.add_scalar("cost/Training hazard collisions", training_collisions_current_update, j)
         log_writer.add_scalar("cost/Instinct reward", instinct_reward, j)
-        log_writer.add_scalar("cost/Hazard collisions", hazard_collisions, j)
+        log_writer.add_scalar("cost/Eval hazard collisions", hazard_collisions, j)
         log_writer.add_scalar("value loss", val_loss, j)
         log_writer.add_scalar("action loss", action_loss, j)
         log_writer.add_scalar("dist entropy", dist_entropy, j)

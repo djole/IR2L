@@ -113,7 +113,7 @@ def instinct_loop_ppo(
                     obs,
                     recurrent_hidden_states,
                     masks,
-                    deterministic=True
+                    deterministic=False
                 )
                 instinct_value, instinct_action, instinct_outputs_log_prob, instinct_recurrent_hidden_states = actor_critic_instinct.act(
                     rollouts_cost.obs[step],
@@ -184,6 +184,7 @@ def instinct_loop_ppo(
             best_fitness_so_far = fits.item()
             torch.save(actor_critic_instinct, join(save_dir, "model_rl_instinct.pt"))
         torch.save(actor_critic_instinct, join(save_dir, "model_rl_instinct_latest.pt"))
+        torch.save(actor_critic_instinct, join(save_dir, f"model_rl_instinct_latest_update_{j}.pt"))
         pickle.dump(ob_rms, open(join(save_dir, "ob_rms.pt"), "wb"))
     return (fitnesses[-1]), 0, 0
 
@@ -192,7 +193,7 @@ def main():
     args = get_args()
     print("start the train function")
 
-    args.init_sigma = 0.6
+    args.init_sigma = 0.7
     args.lr = 0.001
 
     # plot_weight_histogram(parameters)

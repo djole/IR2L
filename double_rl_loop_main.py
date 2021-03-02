@@ -26,7 +26,8 @@ from torch.utils.tensorboard import SummaryWriter
 from enum import Enum
 
 EPISODE_LENGTH = 1000
-HAZARD_PUNISHMENT = 10.0
+HAZARD_PUNISHMENT = 100.0
+HAZARD_PUNISHMENT_4_POLICY = 0.1
 ACTIVATION_DISCOUNT = 0.3
 REWARD_SCALE = 50.0
 
@@ -80,32 +81,34 @@ register(id=ENV_NAME,
 
 ## Register all goals
 ENV_NAME_0 = 'SafexpCustomEnvironmentButtons0-v0'
-config1 = deepcopy(config)
-config1['button_goal_idx'] = 0
+config0 = deepcopy(config)
+config0['button_goal_idx'] = 0
+config0['task'] = "button"
 register(id=ENV_NAME_0,
+         entry_point='safety_gym_mod.envs.mujoco:Engine',
+         kwargs={'config': config0})
+
+ENV_NAME_1 = 'SafexpCustomEnvironmentButtons1-v0'
+config1 = deepcopy(config)
+config1['button_goal_idx'] = 1
+config1['task'] = "button"
+register(id=ENV_NAME_1,
          entry_point='safety_gym_mod.envs.mujoco:Engine',
          kwargs={'config': config1})
 
-ENV_NAME_1 = 'SafexpCustomEnvironmentButtons1-v0'
+ENV_NAME_2 = 'SafexpCustomEnvironmentButtons2-v0'
 config2 = deepcopy(config)
-config2['button_goal_idx'] = 1
-register(id=ENV_NAME_1,
+config2['button_goal_idx'] = 2
+register(id=ENV_NAME_2,
          entry_point='safety_gym_mod.envs.mujoco:Engine',
          kwargs={'config': config2})
 
-ENV_NAME_2 = 'SafexpCustomEnvironmentButtons2-v0'
-config3 = deepcopy(config)
-config3['button_goal_idx'] = 2
-register(id=ENV_NAME_2,
-         entry_point='safety_gym_mod.envs.mujoco:Engine',
-         kwargs={'config': config3})
-
 ENV_NAME_3 = 'SafexpCustomEnvironmentButtons3-v0'
-config4 = deepcopy(config)
-config4['button_goal_idx'] = 3
+config3 = deepcopy(config)
+config3['button_goal_idx'] = 3
 register(id=ENV_NAME_3,
          entry_point='safety_gym_mod.envs.mujoco:Engine',
-         kwargs={'config': config4})
+         kwargs={'config': config3})
 
 NP_RANDOM, _ = seeding.np_random(None)
 NUM_PROC = 24
@@ -172,26 +175,30 @@ def policy_instinct_combinator(policy_actions, instinct_outputs):
 def reward_cost_combinator(reward_list, infos, num_processors, i_control):
     # Count the cost
     violation_cost = torch.Tensor([[0]] * num_processors)
-
+    modded_reward_list = []
     # Add a regularization clause to discourage instinct to activate if not necessary
     for i_control_idx in range(len(i_control)):
         i_control_on_idx = i_control[i_control_idx]
         i_reward = reward_list[i_control_idx]
         safety = (1 - infos[i_control_idx]['cost'] * HAZARD_PUNISHMENT)
-        instinct_activation = (1 - torch.mean(i_control_on_idx).item())
+        instinct_activation = (1 - torch.clamp(torch.mean(i_control_on_idx), 0.0, 1.0).item())
         violation_cost[i_control_idx][0] = safety * (1 - instinct_activation * ACTIVATION_DISCOUNT) * (
                     i_reward * REWARD_SCALE)
 
+        modded_reward_list.append([i_reward - (infos[i_control_idx]['cost']*HAZARD_PUNISHMENT_4_POLICY)])
+
     # Normalize the cost to the episode length
     violation_cost /= float(EPISODE_LENGTH)
+    modded_reward_list = torch.tensor(modded_reward_list)
+    # modded_reward_list /= float(EPISODE_LENGTH)
 
-    return reward_list, violation_cost
+    return modded_reward_list, violation_cost
 
 
 def make_instinct_input(obs, action):
     i_obs = torch.cat([obs, action], dim=1)
-    for i_obs_n in i_obs:  # Blind instinct to goal sensors
-        i_obs_n[51:67] = torch.zeros(16)
+    # for i_obs_n in i_obs:  # Blind instinct to goal sensors
+    #     i_obs_n[51:67] = torch.zeros(16)
     return i_obs
 
 
