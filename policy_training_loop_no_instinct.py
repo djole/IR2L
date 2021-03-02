@@ -141,6 +141,7 @@ def instinct_loop_ppo(
         if fits.item() > best_fitness_so_far:
             best_fitness_so_far = fits.item()
             torch.save(actor_critic_policy, join(save_dir, "model_rl_policy_best.pt"))
+        torch.save(actor_critic_policy, join(save_dir, f"model_rl_policy_latest_{j}.pt"))
         torch.save(actor_critic_policy, join(save_dir, "model_rl_policy_latest.pt"))
         pickle.dump(ob_rms, open(join(save_dir, "ob_rms.p"), "wb"))
     return (fitnesses[-1]), 0, 0

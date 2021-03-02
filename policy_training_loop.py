@@ -173,6 +173,7 @@ def instinct_loop_ppo(
             torch.save(actor_critic_policy, join(save_dir, "model_rl_policy.pt"))
         torch.save(actor_critic_instinct, join(save_dir, "model_rl_instinct_latest.pt"))
         torch.save(actor_critic_policy, join(save_dir, "model_rl_policy_latest.pt"))
+        torch.save(actor_critic_policy, join(save_dir, f"model_rl_policy_latest_{j}.pt"))
         pickle.dump(ob_rms, open(join(save_dir, "ob_rms.p"), "wb"))
     return (fitnesses[-1]), 0, 0
 
