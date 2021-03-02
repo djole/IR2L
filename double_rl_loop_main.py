@@ -48,7 +48,7 @@ config = {
     'lidar_num_bins': 16,
     'task': 'goal',  # Task definition
     'buttons_num': 4,
-    'buttons_locations': [(-1.5, -1.5), (1.5, 1.5), (-1.5, 1.5), (1.5, -1.5)],
+    # 'buttons_locations': [(-1.5, -1.5), (1.5, 1.5), (-1.5, 1.5), (1.5, -1.5)],
     'goal_size': 0.3,
     'goal_keepout': 0.305,
     'hazards_size': 0.2,
@@ -80,35 +80,21 @@ register(id=ENV_NAME,
          kwargs={'config': config})
 
 ## Register all goals
-ENV_NAME_0 = 'SafexpCustomEnvironmentButtons0-v0'
-config0 = deepcopy(config)
-config0['button_goal_idx'] = 0
-config0['task'] = "button"
-register(id=ENV_NAME_0,
+ENV_NAME_BUTTON = 'SafexpCustomEnvironmentButtons-v0'
+config_button = deepcopy(config)
+config_button['button_goal_idx'] = None
+config_button['task'] = "button"
+register(id=ENV_NAME_BUTTON,
          entry_point='safety_gym_mod.envs.mujoco:Engine',
-         kwargs={'config': config0})
+         kwargs={'config': config_button})
 
-ENV_NAME_1 = 'SafexpCustomEnvironmentButtons1-v0'
-config1 = deepcopy(config)
-config1['button_goal_idx'] = 1
-config1['task'] = "button"
-register(id=ENV_NAME_1,
+ENV_NAME_BOX = 'SafexpCustomEnvironmentBox-v0'
+config_box = deepcopy(config)
+config_box['button_goal_idx'] = 0
+config_box['task'] = "push"
+register(id=ENV_NAME_BOX,
          entry_point='safety_gym_mod.envs.mujoco:Engine',
-         kwargs={'config': config1})
-
-ENV_NAME_2 = 'SafexpCustomEnvironmentButtons2-v0'
-config2 = deepcopy(config)
-config2['button_goal_idx'] = 2
-register(id=ENV_NAME_2,
-         entry_point='safety_gym_mod.envs.mujoco:Engine',
-         kwargs={'config': config2})
-
-ENV_NAME_3 = 'SafexpCustomEnvironmentButtons3-v0'
-config3 = deepcopy(config)
-config3['button_goal_idx'] = 3
-register(id=ENV_NAME_3,
-         entry_point='safety_gym_mod.envs.mujoco:Engine',
-         kwargs={'config': config3})
+         kwargs={'config': config_box})
 
 NP_RANDOM, _ = seeding.np_random(None)
 NUM_PROC = 24

@@ -22,7 +22,7 @@ except:
 from os.path import join
 from torch.utils.tensorboard import SummaryWriter
 
-from double_rl_loop_main import ENV_NAME_0, NUM_PROC, reward_cost_combinator, HAZARD_PUNISHMENT, REWARD_SCALE,\
+from double_rl_loop_main import ENV_NAME_BUTTON, NUM_PROC, reward_cost_combinator, HAZARD_PUNISHMENT, REWARD_SCALE,\
     EPISODE_LENGTH
 
 
@@ -39,7 +39,7 @@ def instinct_loop_ppo(
     log_writer = SummaryWriter(save_dir, max_queue=1, filename_suffix="log")
     device = torch.device("cpu")
 
-    env_name = ENV_NAME_0 #"Safexp-PointGoal1-v0"
+    env_name = ENV_NAME_BUTTON #"Safexp-PointGoal1-v0"
     envs = make_vec_envs(env_name, np.random.randint(2 ** 32), NUM_PROC,
                          args.gamma, None, device, allow_early_resets=True, normalize=args.norm_vectors)
     eval_envs = make_vec_envs(env_name, np.random.randint(2 ** 32), 1,
@@ -89,7 +89,7 @@ def instinct_loop_ppo(
 
             # Combine two networks
             obs, reward, done, infos = envs.step(action)
-            #envs.render()
+            # envs.render()
             training_collisions_current_update += sum([i['cost'] for i in infos])
             modded_reward, _ = reward_cost_combinator(reward, infos, NUM_PROC, torch.tensor([[0.0]] * NUM_PROC))
 
