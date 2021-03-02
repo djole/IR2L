@@ -160,7 +160,7 @@ def main():
         args,
         args.lr,
         num_steps=9000,
-        num_updates=1000,
+        num_updates=300,
         inst_on=False,
         visualize=False,
         save_dir=exp_save_dir
