@@ -80,7 +80,7 @@ register(id=ENV_NAME,
          kwargs={'config': config})
 
 ## Register all goals
-ENV_NAME_BUTTON_EASY = 'SafexpCustomEnvironmentButtons-v0'
+ENV_NAME_BUTTON_EASY = 'SafexpCustomEnvironmentButtons0-v0'
 config_button_easy = deepcopy(config)
 config_button_easy['button_goal_idx'] = None
 config_button_easy['task'] = "button"
@@ -91,7 +91,7 @@ register(id=ENV_NAME_BUTTON_EASY,
          kwargs={'config': config_button_easy})
 
 
-ENV_NAME_BUTTON_HARDER = 'SafexpCustomEnvironmentButtons-v0'
+ENV_NAME_BUTTON_HARDER = 'SafexpCustomEnvironmentButtons1-v0'
 config_button_harder = deepcopy(config)
 config_button_harder['button_goal_idx'] = None
 config_button_harder['task'] = "button"
