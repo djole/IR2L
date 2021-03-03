@@ -80,18 +80,33 @@ register(id=ENV_NAME,
          kwargs={'config': config})
 
 ## Register all goals
-ENV_NAME_BUTTON = 'SafexpCustomEnvironmentButtons-v0'
-config_button = deepcopy(config)
-config_button['button_goal_idx'] = None
-config_button['task'] = "button"
-register(id=ENV_NAME_BUTTON,
+ENV_NAME_BUTTON_EASY = 'SafexpCustomEnvironmentButtons-v0'
+config_button_easy = deepcopy(config)
+config_button_easy['button_goal_idx'] = None
+config_button_easy['task'] = "button"
+config_button_easy['hazards_num'] = 8
+config_button_easy['hazards_locations'] = []
+register(id=ENV_NAME_BUTTON_EASY,
          entry_point='safety_gym_mod.envs.mujoco:Engine',
-         kwargs={'config': config_button})
+         kwargs={'config': config_button_easy})
+
+
+ENV_NAME_BUTTON_HARDER = 'SafexpCustomEnvironmentButtons-v0'
+config_button_harder = deepcopy(config)
+config_button_harder['button_goal_idx'] = None
+config_button_harder['task'] = "button"
+config_button_harder['hazards_num'] = 12
+register(id=ENV_NAME_BUTTON_HARDER,
+         entry_point='safety_gym_mod.envs.mujoco:Engine',
+         kwargs={'config': config_button_harder})
+
 
 ENV_NAME_BOX = 'SafexpCustomEnvironmentBox-v0'
 config_box = deepcopy(config)
 config_box['button_goal_idx'] = 0
 config_box['task'] = "push"
+config_box['hazards_num'] = 8
+config_box['hazards_locations'] = []
 register(id=ENV_NAME_BOX,
          entry_point='safety_gym_mod.envs.mujoco:Engine',
          kwargs={'config': config_box})
