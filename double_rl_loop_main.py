@@ -86,6 +86,10 @@ config_button_easy['button_goal_idx'] = None
 config_button_easy['task'] = "button"
 config_button_easy['hazards_num'] = 8
 config_button_easy['hazards_locations'] = []
+config_button_easy['hazards_keepout'] = 0.6
+config_button_easy['placements_extents'] = [-3, -3, 3, 3]
+config_button_easy['robot_locations'] = []
+config_button_easy['robot_rot'] = None
 register(id=ENV_NAME_BUTTON_EASY,
          entry_point='safety_gym_mod.envs.mujoco:Engine',
          kwargs={'config': config_button_easy})
@@ -106,14 +110,15 @@ config_box = deepcopy(config)
 config_box['button_goal_idx'] = 0
 config_box['task'] = "push"
 config_box['hazards_num'] = 15
-config_box['hazards_locations'] = [(-1, -1), (1, 1), (-1, 1), (1, -1),  # inner corners
-                                    (0.0, 1), (0.0, -1), (1, 0.0), (-1, 0.0),  # inner cross
-                                    (0, 0), (-1, 2,), (0, 2), (1, 2),  # outer corners
-                                    (-1, -2), (0, -2), (1, -2), (2, 0),  # outer cross
+config_box['hazards_locations'] = [(-1, -1.25), (1, 1.25), (-1, 1.25), (1, -1.25),  # inner corners
+                                    (0.0, 1.25), (0.0, -1.25), (1, 0.0), (-1, 0.0),  # inner cross
+                                    (0, 0), (-1, 2.5), (0, 2.5), (1, 2.5),  # outer corners
+                                    (-1, -2.5), (0, -2.5), (1, -2.5), (2, 0),  # outer cross
                                     ]
 config_box['robot_locations'] = [(-4, 0), (-4, -2), (-4, 2)]
 config_box['goal_locations'] = [(4, 0), (4, -2), (4, 2)]
 config_box['box_locations'] = [(3, 0), (3, -2), (3, 2)]
+config_box['buttons_num'] = 1
 register(id=ENV_NAME_BOX,
          entry_point='safety_gym_mod.envs.mujoco:Engine',
          kwargs={'config': config_box})
