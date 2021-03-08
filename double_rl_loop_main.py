@@ -110,15 +110,16 @@ config_box = deepcopy(config)
 config_box['button_goal_idx'] = 0
 config_box['task'] = "push"
 config_box['hazards_num'] = 15
-config_box['hazards_locations'] = [(-1, -1.25), (1, 1.25), (-1, 1.25), (1, -1.25),  # inner corners
-                                    (0.0, 1.25), (0.0, -1.25), (1, 0.0), (-1, 0.0),  # inner cross
-                                    (0, 0), (-1, 2.5), (0, 2.5), (1, 2.5),  # outer corners
-                                    (-1, -2.5), (0, -2.5), (1, -2.5), (2, 0),  # outer cross
+config_box['hazards_locations'] = [(-3, -1.25), (-1, 1.25), (-3, 1.25), (-1, -1.25),  # inner corners
+                                    (-2, 1.25), (-2, -1.25), (-1, 0.0), (-3, 0.0),  # inner cross
+                                    (-2, 0), (-3, 2.5), (-2, 2.5), (-1, 2.5),  # outer corners
+                                    (-3, -2.5), (-2, -2.5), (-1, -2.5), (0, 0),  # outer cross
                                     ]
 config_box['robot_locations'] = [(-4, 0), (-4, -2), (-4, 2)]
 config_box['goal_locations'] = [(4, 0), (4, -2), (4, 2)]
-config_box['box_locations'] = [(3, 0), (3, -2), (3, 2)]
+config_box['box_locations'] = [(0.5, 0), (0.5, -2), (0.5, 2)]
 config_box['buttons_num'] = 1
+config_box['buttons_locations'] = [(0, -3)]
 register(id=ENV_NAME_BOX,
          entry_point='safety_gym_mod.envs.mujoco:Engine',
          kwargs={'config': config_box})
