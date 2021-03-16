@@ -121,7 +121,7 @@ config_box['robot_locations'] = [(-4, 0), (-4, -2), (-4, 2)]
 config_box['goal_placements'] = [(3, -2, 4, 2)]
 config_box['box_placements'] = [(1, -2, 2, -1), (1, 1, 2, 2)]
 config_box['buttons_num'] = 1
-config_box['buttons_locations'] = [(3, -3)]
+config_box['buttons_locations'] = [(-3, -3)]
 register(id=ENV_NAME_BOX,
          entry_point='safety_gym_mod.envs.mujoco:Engine',
          kwargs={'config': config_box})
@@ -139,7 +139,7 @@ config_box_no_haz['hazards_locations'] = [
                                     (-1, 2.5), (-1, 1.25), (-1, 0), (-1, -1.25), (-1, -2.5),
                                     (0, 2.5), (0, 1.25), (0, 0), (0, -1.25), (0, -2.5),
                                     ]
-config_box_no_haz['robot_locations'] = [(-4, 0), (-4, -2), (-4, 2)]
+config_box_no_haz['robot_locations'] = [(-2.5, 0)]
 config_box_no_haz['goal_placements'] = [(3, -2, 4, 2)]
 config_box_no_haz['box_placements'] = [(1, -2, 2, -1), (1, 1, 2, 2)]
 config_box_no_haz['buttons_num'] = 1
