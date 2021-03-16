@@ -107,6 +107,7 @@ register(id=ENV_NAME_BUTTON_HARDER,
 
 ENV_NAME_BOX = 'SafexpCustomEnvironmentBox-v0'
 config_box = deepcopy(config)
+config_box['num_steps'] = EPISODE_LENGTH * 2
 config_box['button_goal_idx'] = 0
 config_box['task'] = "push"
 config_box['hazards_num'] = 20
@@ -124,6 +125,30 @@ config_box['buttons_locations'] = [(3, -3)]
 register(id=ENV_NAME_BOX,
          entry_point='safety_gym_mod.envs.mujoco:Engine',
          kwargs={'config': config_box})
+
+
+ENV_NAME_BOX_NO_HAZARDS = 'SafexpCustomEnvironmentBox-v1'
+config_box_no_haz = deepcopy(config_box)
+config_box_no_haz['num_steps'] = EPISODE_LENGTH * 2
+config_box_no_haz['button_goal_idx'] = 0
+config_box_no_haz['task'] = "push"
+config_box_no_haz['hazards_num'] = 0
+config_box_no_haz['hazards_locations'] = [
+                                    (-3, 2.5), (-3, 1.25), (-3, 0), (-3, -1.25), (-3, -2.5),
+                                    (-2, 2.5), (-2, 1.25), (-2, 0), (-2, -1.25), (-2, -2.5),
+                                    (-1, 2.5), (-1, 1.25), (-1, 0), (-1, -1.25), (-1, -2.5),
+                                    (0, 2.5), (0, 1.25), (0, 0), (0, -1.25), (0, -2.5),
+                                    ]
+config_box_no_haz['robot_locations'] = [(-4, 0), (-4, -2), (-4, 2)]
+config_box_no_haz['goal_placements'] = [(3, -2, 4, 2)]
+config_box_no_haz['box_placements'] = [(1, -2, 2, -1), (1, 1, 2, 2)]
+config_box_no_haz['buttons_num'] = 1
+config_box_no_haz['buttons_locations'] = [(-3, -3)]
+
+
+register(id=ENV_NAME_BOX_NO_HAZARDS,
+         entry_point='safety_gym_mod.envs.mujoco:Engine',
+         kwargs={'config': config_box_no_haz})
 
 NP_RANDOM, _ = seeding.np_random(None)
 NUM_PROC = 24
