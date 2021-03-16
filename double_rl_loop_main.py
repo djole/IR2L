@@ -139,9 +139,9 @@ config_box_no_haz['hazards_locations'] = [
                                     (-1, 2.5), (-1, 1.25), (-1, 0), (-1, -1.25), (-1, -2.5),
                                     (0, 2.5), (0, 1.25), (0, 0), (0, -1.25), (0, -2.5),
                                     ]
-config_box_no_haz['robot_locations'] = [(-2.5, 0)]
-config_box_no_haz['goal_placements'] = [(3, -2, 4, 2)]
-config_box_no_haz['box_placements'] = [(1, -2, 2, -1), (1, 1, 2, 2)]
+config_box_no_haz['robot_locations'] = [(0, 0)]
+config_box_no_haz['goal_placements'] = [(-2, -2, 4, 4)]
+config_box_no_haz['box_placements'] = [(-2, -2, 4, 4)]
 config_box_no_haz['buttons_num'] = 1
 config_box_no_haz['buttons_locations'] = [(-3, -3)]
 
@@ -256,7 +256,7 @@ class EvalActorCritic:
         i_obs = make_instinct_input(obs, a)
         _, ai, _, _ = self.instinct.act(i_obs, eval_recurrent_hidden_states, eval_masks, deterministic=deterministic)
         total_action, i_control = policy_instinct_combinator(a, ai)
-        return None, total_action, i_control, None
+        return None, a, i_control, None
 
 
 def inner_loop_ppo(
