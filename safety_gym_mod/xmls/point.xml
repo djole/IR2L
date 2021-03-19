@@ -16,8 +16,8 @@
             <joint type="slide" axis="1 0 0" name="x" damping="0.01"/>
             <joint type="slide" axis="0 1 0" name="y" damping="0.01"/>
             <joint type="hinge" axis="0 0 1" name="z" damping="0.005"/>
-            <geom name="robot" type="sphere" size=".1" friction="1 0.01 0.01"/>
-            <geom name="pointarrow" pos="0.1 0 0" size="0.05 0.05 0.05" type="box"/>
+            <geom name="robot" type="sphere" size=".1" friction="1 1 1"/>
+            <geom name="pointarrow1" pos="0.1 0 0" size="0.05 0.05 0.05" type="box"/>
             <site name="robot" rgba="1 0 0 .1"/>
         </body>
     </worldbody>
