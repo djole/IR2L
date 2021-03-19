@@ -110,7 +110,7 @@ config_box = deepcopy(config)
 config_box['num_steps'] = EPISODE_LENGTH * 2
 config_box['button_goal_idx'] = 0
 config_box['task'] = "push"
-config_box['hazards_num'] = 20
+config_box['hazards_num'] = 0
 config_box['hazards_locations'] = [
                                     (-3, 2.5), (-3, 1.25), (-3, 0), (-3, -1.25), (-3, -2.5),
                                     (-2, 2.5), (-2, 1.25), (-2, 0), (-2, -1.25), (-2, -2.5),
