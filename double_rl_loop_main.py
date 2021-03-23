@@ -256,7 +256,7 @@ class EvalActorCritic:
         i_obs = make_instinct_input(obs, a)
         _, ai, _, _ = self.instinct.act(i_obs, eval_recurrent_hidden_states, eval_masks, deterministic=deterministic)
         total_action, i_control = policy_instinct_combinator(a, ai)
-        return None, a, i_control, None
+        return None, total_action, i_control, None
 
 
 def inner_loop_ppo(
