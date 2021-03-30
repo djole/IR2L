@@ -107,10 +107,9 @@ register(id=ENV_NAME_BUTTON_HARDER,
 
 ENV_NAME_BOX = 'SafexpCustomEnvironmentBox-v0'
 config_box = deepcopy(config)
-config_box['num_steps'] = EPISODE_LENGTH * 2
 config_box['button_goal_idx'] = 0
 config_box['task'] = "push"
-config_box['hazards_num'] = 0
+config_box['hazards_num'] = 20
 config_box['hazards_locations'] = [
                                     (-3, 2.5), (-3, 1.25), (-3, 0), (-3, -1.25), (-3, -2.5),
                                     (-2, 2.5), (-2, 1.25), (-2, 0), (-2, -1.25), (-2, -2.5),
@@ -119,7 +118,7 @@ config_box['hazards_locations'] = [
                                     ]
 config_box['robot_locations'] = [(-4, 0), (-4, -2), (-4, 2)]
 config_box['goal_placements'] = [(3, -2, 4, 2)]
-config_box['box_placements'] = [(-3, -2, -2, 2)]
+config_box['box_placements'] = [(1, -2, 2, -1), (1, 1, 2, 2)]
 config_box['buttons_num'] = 1
 config_box['buttons_locations'] = [(-3, -3)]
 register(id=ENV_NAME_BOX,
@@ -201,7 +200,7 @@ def policy_instinct_combinator(policy_actions, instinct_outputs):
     # Divert the control from action in the instinct
     instinct_control = instinct_outputs[:, instinct_half_shape:]
     instinct_action = instinct_outputs[:, :instinct_half_shape]  # Bring tanh(x) to [0, 1] range
-    instinct_control = (instinct_control + 1) * 0.5
+    instinct_control = ((instinct_control + 1) * 0.5) ** 0.1
 
     # Control the policy and instinct outputs
     ctrl_policy_actions = instinct_control * policy_actions
