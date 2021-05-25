@@ -126,7 +126,7 @@ register(id=ENV_NAME_BOX,
          kwargs={'config': config_box})
 
 NP_RANDOM, _ = seeding.np_random(None)
-NUM_PROC = 2
+NUM_PROC = 24
 
 PHASE_LENGTH = 1000
 
