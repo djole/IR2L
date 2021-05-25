@@ -47,7 +47,7 @@ config = {
 
     'lidar_num_bins': 16,
     'task': 'goal',  # Task definition
-    'buttons_num': 4,
+    'buttons_num': 1,
     # 'buttons_locations': [(-1.5, -1.5), (1.5, 1.5), (-1.5, 1.5), (1.5, -1.5)],
     'goal_size': 0.3,
     'goal_keepout': 0.305,
@@ -72,7 +72,12 @@ config = {
     'vases_num': 0,
     'constrain_hazards': True,
     'observe_hazards': True,
-    'observe_vases': False}
+    'observe_vases': False,
+
+    'box_locations': [(5, 5)],
+    'buttons_num': 1,
+    'buttons_locations': [(5, -5)],
+}
 
 ENV_NAME = 'SafexpCustomEnvironmentGoal1-v0'
 register(id=ENV_NAME,
