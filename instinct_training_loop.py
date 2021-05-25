@@ -54,7 +54,7 @@ def instinct_loop_ppo(
     obs_shape = envs.observation_space.shape
     inst_action_space = deepcopy(envs.action_space)
     inst_obs_shape = list(obs_shape)
-    inst_obs_shape[0] = inst_obs_shape[0] + envs.action_space.shape[0]
+    inst_obs_shape[0] = inst_obs_shape[0]  # + envs.action_space.shape[0]
     # Prepare modified action space for instinct
     inst_action_space.shape = list(inst_action_space.shape)
     inst_action_space.shape[0] = inst_action_space.shape[0] + 1
@@ -93,7 +93,7 @@ def instinct_loop_ppo(
                                    actor_critic_instinct.recurrent_hidden_state_size)
 
     obs = envs.reset()
-    i_obs = torch.cat([obs, torch.zeros((NUM_PROC, envs.action_space.shape[0]))], dim=1)  # Add zero action to the observation
+    i_obs = obs  # torch.cat([obs, torch.zeros((NUM_PROC, envs.action_space.shape[0]))], dim=1)  # Add zero action to the observation
     rollouts_cost.obs[0].copy_(i_obs)
     rollouts_cost.to(device)
 
@@ -133,7 +133,7 @@ def instinct_loop_ppo(
             # If done then clean the history of observations.
             masks = torch.FloatTensor([[0.0] if done_ else [1.0] for done_ in done])
             bad_masks = torch.FloatTensor([[0.0] if 'bad_transition' in info.keys() else [1.0] for info in infos])
-            i_obs = torch.cat([obs, action], dim=1)
+            i_obs = obs  # torch.cat([obs, action], dim=1)
             rollouts_cost.insert(i_obs, instinct_recurrent_hidden_states, instinct_action, instinct_outputs_log_prob,
                                  instinct_value, violation_cost, masks, bad_masks)
 

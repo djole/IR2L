@@ -126,7 +126,7 @@ register(id=ENV_NAME_BOX,
          kwargs={'config': config_box})
 
 NP_RANDOM, _ = seeding.np_random(None)
-NUM_PROC = 24
+NUM_PROC = 2
 
 PHASE_LENGTH = 1000
 
@@ -228,7 +228,7 @@ class EvalActorCritic:
 
     def act(self, obs, eval_recurrent_hidden_states, eval_masks, deterministic=True):
         _, a, _, _ = self.policy.act(obs, eval_recurrent_hidden_states, eval_masks, deterministic=deterministic)
-        i_obs = make_instinct_input(obs, a)
+        i_obs = obs  # make_instinct_input(obs, a)
         _, ai, _, _ = self.instinct.act(i_obs, eval_recurrent_hidden_states, eval_masks, deterministic=deterministic)
         total_action, i_control = policy_instinct_combinator(a, ai)
         return None, total_action, i_control, None

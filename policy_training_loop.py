@@ -80,7 +80,7 @@ def instinct_loop_ppo(
                                    actor_critic_policy.recurrent_hidden_state_size)
 
     obs = envs.reset()
-    i_obs = make_instinct_input(obs, torch.zeros((NUM_PROC, envs.action_space.shape[0])))  # Add zero action to the observation
+    i_obs = obs  # make_instinct_input(obs, torch.zeros((NUM_PROC, envs.action_space.shape[0])))  # Add zero action to the observation
     rollouts.obs[0].copy_(obs)
     rollouts.to(device)
 
@@ -121,7 +121,7 @@ def instinct_loop_ppo(
             masks = torch.FloatTensor([[0.0] if done_ else [1.0] for done_ in done])
             bad_masks = torch.FloatTensor([[0.0] if 'bad_transition' in info.keys() else [1.0] for info in infos])
             # i_obs = torch.cat([obs, action], dim=1)
-            i_obs = make_instinct_input(obs, action)
+            i_obs = obs  # make_instinct_input(obs, action)
             rollouts.insert(obs, recurrent_hidden_states, action, action_log_probs,
                                  value, modded_reward, masks, bad_masks)
 
