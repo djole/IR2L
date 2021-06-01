@@ -194,7 +194,7 @@ def reward_cost_combinator(reward_list, infos, num_processors, i_control):
     # Add a regularization clause to discourage instinct to activate if not necessary
     for i_control_idx in range(len(i_control)):
         i_control_on_idx = i_control[i_control_idx]
-        i_reward = reward_list[i_control_idx]
+        i_reward = reward_list[i_control_idx].clamp(0)
         safety = (1 - infos[i_control_idx]['cost'] * HAZARD_PUNISHMENT)
         instinct_activation = (1 - torch.clamp(torch.mean(i_control_on_idx), 0.0, 1.0).item())
         violation_cost[i_control_idx][0] = safety * (1 - instinct_activation * ACTIVATION_DISCOUNT) * (

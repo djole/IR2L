@@ -12,7 +12,7 @@ from a2c_ppo_acktr.envs import make_vec_envs
 from a2c_ppo_acktr.evaluation import evaluate
 # from a2c_ppo_acktr.model import init_default_ppo, Policy, custom_weight_init
 from arguments import get_args
-from double_rl_loop_main import reward_cost_combinator, config_box  # , config1, config2, config3, config4
+from double_rl_loop_main import reward_cost_combinator, config  # , config1, config2, config3, config4
 from copy import deepcopy
 import pickle
 import matplotlib.pyplot as plt
@@ -22,7 +22,7 @@ import matplotlib.colors as colors
 env_name = 'SafexpCustomEnvironmentGoal1Test-v0'
 register(id=env_name,
          entry_point='safety_gym_mod.envs.mujoco:Engine',
-         kwargs={'config': config_box})
+         kwargs={'config': config})
 
 
 def visualise_values_over_path(data_list):
@@ -115,11 +115,11 @@ def main(repeat_num):
     # f = open(f"/Users/djgr/pulled_from_server/evaluate_instinct_all_inputs_task_switch_button/real_safety_tasks_easier/sweep_eval_hazard_param_BUTTON_more_space/{title}.csv", "w")
     actor_critic_policy = torch.load(
         # f"/Users/djgr/pulled_from_server/evaluate_instinct_all_inputs_task_switch_button/real_safety_tasks_easier/sweep_eval_hazard_param_BOX_more_space_more_time/hh_10_baseline_centered_noHaz/model_rl_policy_latest.pt"
-        "/home/calavera/pulled_from_server/evaluate_instinct_all_inputs_task_switch_button/real_safety_tasks_easier/sweep_eval_hazard_param_BOX_more_space/hh_10/model_rl_policy_latest.pt"
+        "/home/calavera/code/ITU_work/IR2L/pretrained_policy.pt"
         # "/home/calavera/code/ITU_work/IR2L_master/pretrained_policy.pt"
     )
     actor_critic_instinct = torch.load(
-        f"/home/calavera/pulled_from_server/evaluate_instinct_all_inputs_task_switch_button/real_safety_tasks_easier/sweep_eval_hazard_param_BOX_more_space/hh_10/model_rl_instinct_latest.pt"
+        f"/home/calavera/pulled_from_server/train_instinct_with_all_task_sensors/disconnect_policy_output_from_instinct_input/model_rl_instinct_latest.pt"
     )
 
     ob_rms = utils.get_vec_normalize(eval_envs)
@@ -127,7 +127,7 @@ def main(repeat_num):
     if ob_rms is not None:
         ob_rms = ob_rms.ob_rms
     ob_rms = pickle.load(open(
-        f"/home/calavera/pulled_from_server/evaluate_instinct_all_inputs_task_switch_button/real_safety_tasks_easier/sweep_eval_hazard_param_BOX_more_space/hh_10/ob_rms.p",
+        f"/home/calavera/pulled_from_server/train_instinct_with_all_task_sensors/disconnect_policy_output_from_instinct_input/ob_rms.pt",
         "rb"))
 
     for _ in range(repeat_num):
@@ -136,7 +136,7 @@ def main(repeat_num):
             EvalActorCritic(actor_critic_policy, actor_critic_instinct),
             ob_rms, eval_envs, 1, reward_cost_combinator, device, instinct_on=True, visualise=True
         )
-        visualise_values_over_path(info['plot_info'])
+        # visualise_values_over_path(info['plot_info'])
 
         # f.write(f"fitness; {fits.item()}; hazard_collisions; {info['hazard_collisions']}\n")
         # f.flush()
