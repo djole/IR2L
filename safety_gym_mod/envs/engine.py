@@ -1345,6 +1345,15 @@ class Engine(gym.Env, gym.utils.EzPickle):
         if self.steps >= self.num_steps:
             self.done = True  # Maximum number of steps in an episode reached
 
+        # Info for plotting
+        info['plot_info'] = {}
+        info['plot_info']['pos_x'] = self.world.robot_pos()[0]
+        info['plot_info']['pos_y'] = self.world.robot_pos()[1]
+        info['plot_info']['hazards_pos'] = deepcopy(self.hazards_pos)
+        info['plot_info']['buttons_pos'] = deepcopy(self.buttons_pos)
+        info['plot_info']['box_pos'] = deepcopy(self.box_pos)
+        info['plot_info']['goal_pos'] = deepcopy(self.goal_pos)
+
         return self.obs(), reward, self.done, info
 
     def reward(self):

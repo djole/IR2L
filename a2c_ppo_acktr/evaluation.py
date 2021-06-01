@@ -24,6 +24,8 @@ def evaluate(actor_critic, ob_rms, eval_envs, num_processes, reward_cost_combina
     cummulative_reward = 0
     hazard_collisions = 0
     total_instinct_reward = 0
+
+    plot_info_step_dicts = []
     while not done:
         with torch.no_grad():
             _, final_action, i_control, _ = actor_critic.act(
@@ -41,6 +43,9 @@ def evaluate(actor_critic, ob_rms, eval_envs, num_processes, reward_cost_combina
 
         if visualise:
             eval_envs.render()
+            plot_info_dict = infos[0]['plot_info'].copy()
+            plot_info_dict['instinct regulation'] = (1.0 - i_control.clone().item())
+            plot_info_step_dicts.append(plot_info_dict)
 
         eval_masks = torch.tensor(
             [[0.0] if done_ else [1.0] for done_ in done],
@@ -49,4 +54,7 @@ def evaluate(actor_critic, ob_rms, eval_envs, num_processes, reward_cost_combina
 
         cummulative_reward += total_reward
         total_instinct_reward += instinct_reward
-    return cummulative_reward, {'instinct_reward': total_instinct_reward, 'hazard_collisions': hazard_collisions}
+    return cummulative_reward, {'instinct_reward': total_instinct_reward,
+                                'hazard_collisions': hazard_collisions,
+                                'plot_info_steps': plot_info_step_dicts,
+                                }
