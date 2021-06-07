@@ -119,7 +119,7 @@ def main(repeat_num):
         # "/home/calavera/code/ITU_work/IR2L_master/pretrained_policy.pt"
     )
     actor_critic_instinct = torch.load(
-        f"/home/calavera/pulled_from_server/train_instinct_with_all_task_sensors/disconnect_policy_output_from_instinct_input/model_rl_instinct_latest.pt"
+        f"/home/calavera/pulled_from_server/train_instinct_with_all_task_sensors/disconnect_policy_output_from_instinct_input/model_rl_instinct_latest_update_100.pt"
     )
 
     ob_rms = utils.get_vec_normalize(eval_envs)
