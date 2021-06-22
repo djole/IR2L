@@ -163,7 +163,20 @@ def plot_weight_histogram(parameters):
     plt.show()
 
 
-def policy_instinct_combinator(policy_actions, instinct_outputs):
+def mod_instinct_suppression_sig(x):
+    return 1.0 - x
+
+
+def mod_instinct_suppression_sig_step(x):
+    return 1.0 - round(x, 1)
+
+
+def mod_instinct_suppression_sig_square(x):
+    return 1.0 - (x ** 2)
+
+
+def policy_instinct_combinator(policy_actions, instinct_outputs, current_update, total_updates):
+    suffocate_instinct = mod_instinct_suppression_sig(float(current_update) / total_updates)
     # Split the shape
     instinct_half_shape = int(instinct_outputs.shape[1] - 1)
 
@@ -175,8 +188,11 @@ def policy_instinct_combinator(policy_actions, instinct_outputs):
 
     # Divert the control from action in the instinct
     instinct_control = instinct_outputs[:, instinct_half_shape:]
-    instinct_action = instinct_outputs[:, :instinct_half_shape]  # Bring tanh(x) to [0, 1] range
-    instinct_control = (instinct_control + 1) * 0.5
+    instinct_action = instinct_outputs[:, :instinct_half_shape]
+    instinct_control = (instinct_control + 1) * 0.5 # Bring tanh(x) to [0, 1] range
+
+    # Supress instinct over time.
+    instinct_control = (instinct_control * suffocate_instinct) + (1.0 - suffocate_instinct)
 
     # Control the policy and instinct outputs
     ctrl_policy_actions = instinct_control * policy_actions
@@ -201,6 +217,7 @@ def reward_cost_combinator(reward_list, infos, num_processors, i_control):
                     i_reward * REWARD_SCALE)
 
         modded_reward_list.append([i_reward - (infos[i_control_idx]['cost']*HAZARD_PUNISHMENT_4_POLICY)])
+        #modded_reward_list.append([i_reward - (infos[i_control_idx]['cost'] * HAZARD_PUNISHMENT_4_POLICY) - (instinct_activation * HAZARD_PUNISHMENT_4_POLICY)])
 
     # Normalize the cost to the episode length
     violation_cost /= float(EPISODE_LENGTH)
@@ -230,7 +247,7 @@ class EvalActorCritic:
         _, a, _, _ = self.policy.act(obs, eval_recurrent_hidden_states, eval_masks, deterministic=deterministic)
         i_obs = make_instinct_input(obs, a)
         _, ai, _, _ = self.instinct.act(i_obs, eval_recurrent_hidden_states, eval_masks, deterministic=deterministic)
-        total_action, i_control = policy_instinct_combinator(a, ai)
+        total_action, i_control = policy_instinct_combinator(a, ai, 100, 100)
         return None, total_action, i_control, None
 
 
